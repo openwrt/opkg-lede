@@ -422,34 +422,6 @@ int pkg_dependence_satisfiable(depend_t * depend)
 	return 0;
 }
 
-int pkg_dependence_satisfied(depend_t * depend)
-{
-	abstract_pkg_t *apkg = depend->pkg;
-	abstract_pkg_vec_t *provider_apkgs = apkg->provided_by;
-	int n_providers = provider_apkgs->len;
-	abstract_pkg_t **apkgs = provider_apkgs->pkgs;
-	int i;
-	int n_pkgs;
-	int j;
-
-	for (i = 0; i < n_providers; i++) {
-		abstract_pkg_t *papkg = apkgs[i];
-		pkg_vec_t *pkg_vec = papkg->pkgs;
-		if (pkg_vec) {
-			n_pkgs = pkg_vec->len;
-			for (j = 0; j < n_pkgs; j++) {
-				pkg_t *pkg = pkg_vec->pkgs[j];
-				if (version_constraints_satisfied(depend, pkg)) {
-					if (pkg->state_status == SS_INSTALLED
-					    || pkg->state_status == SS_UNPACKED)
-						return 1;
-				}
-			}
-		}
-	}
-	return 0;
-}
-
 static int is_pkg_in_pkg_vec(pkg_vec_t * vec, pkg_t * pkg)
 {
 	int i;
