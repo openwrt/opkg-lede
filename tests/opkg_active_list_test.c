@@ -39,11 +39,6 @@ static void active_test_add(struct active_list *head, struct active_test *node)
 	active_list_add(head, &node->list);
 }
 
-static void active_test_add_depend(struct active_test *A, struct active_test *B)
-{
-	active_list_add_depend(&A->list, &B->list);
-}
-
 /*
 ．--A---B----C----D-----E----F
     |             |__k---L
@@ -88,15 +83,6 @@ static void make_list(struct active_list *head)
 	active_test_add(head, M);
 	active_test_add(head, N);
 	active_test_add(head, O);
-	active_test_add_depend(H, M);
-	active_test_add_depend(A, G);
-	active_test_add_depend(A, H);
-	active_test_add_depend(A, I);
-	active_test_add_depend(A, J);
-	active_test_add_depend(J, O);
-	active_test_add_depend(C, K);
-	active_test_add_depend(C, L);
-	active_test_add_depend(L, N);
 }
 
 static int active_test_compare(const void *a, const void *b)
