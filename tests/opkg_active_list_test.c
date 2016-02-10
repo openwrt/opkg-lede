@@ -85,15 +85,6 @@ static void make_list(struct active_list *head)
 	active_test_add(head, O);
 }
 
-static int active_test_compare(const void *a, const void *b)
-{
-	struct active_list *first = (struct active_list *)a;
-	struct active_list *second = (struct active_list *)b;
-	return memcmp(list_entry(first, struct active_test, list),
-		      list_entry(second, struct active_test, list),
-		      sizeof(struct active_test));
-}
-
 static void show_list(struct active_list *head)
 {
 	struct active_list *ptr;
@@ -126,10 +117,6 @@ int main(void)
 		test = list_entry(ptr, struct active_test, list);
 		printf("%s ", test->str);
 	}
-	printf("\npos order after sort: ");
-	active_list_sort(&head, &active_test_compare);
-	show_list(&head);
-
 	printf("after clear: ");
 	active_list_clear(&head);
 	for (ptr = active_list_next(&head, NULL); ptr;
