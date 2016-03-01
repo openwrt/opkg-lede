@@ -1222,7 +1222,7 @@ static int opkg_compare_versions_cmd(int argc, char **argv)
 		struct pkg p1, p2;
 		parse_version(&p1, argv[0]);
 		parse_version(&p2, argv[2]);
-		return pkg_version_satisfied(&p1, &p2, argv[1]);
+		return pkg_version_satisfied(&p1, &p2, argv[1]) ? 0 : 1;
 	} else {
 		opkg_msg(ERROR,
 			 "opkg compare_versions <v1> <op> <v2>\n"
