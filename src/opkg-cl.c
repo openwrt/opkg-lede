@@ -391,7 +391,9 @@ int main(int argc, char *argv[])
 	    !strcmp(cmd_name, "print-architecture") ||
 	    !strcmp(cmd_name, "print_architecture") ||
 	    !strcmp(cmd_name, "print-installation-architecture") ||
-	    !strcmp(cmd_name, "print_installation_architecture"))
+	    !strcmp(cmd_name, "print_installation_architecture") ||
+	    !strcmp(cmd_name, "compare_versions") ||
+	    !strcmp(cmd_name, "compare-versions"))
 		nocheckfordirorfile = 1;
 
 	if (!strcmp(cmd_name, "flag") ||
@@ -400,8 +402,6 @@ int main(int argc, char *argv[])
 	    !strcmp(cmd_name, "remove") ||
 	    !strcmp(cmd_name, "files") ||
 	    !strcmp(cmd_name, "search") ||
-	    !strcmp(cmd_name, "compare_versions") ||
-	    !strcmp(cmd_name, "compare-versions") ||
 	    !strcmp(cmd_name, "list_installed") ||
 	    !strcmp(cmd_name, "list-installed") ||
 	    !strcmp(cmd_name, "list_changed_conffiles") ||
