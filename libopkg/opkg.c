@@ -599,7 +599,7 @@ opkg_update_package_lists(opkg_progress_callback_t progress_callback,
 		}
 		free(url);
 
-#if defined(HAVE_GPGME) || defined(HAVE_OPENSSL)
+#if defined(HAVE_GPGME) || defined(HAVE_OPENSSL) || defined(HAVE_USIGN)
 		if (conf->check_signature) {
 			char *sig_file_name;
 			/* download detached signitures to verify the package lists */

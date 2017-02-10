@@ -19,6 +19,7 @@
 
 #include "config.h"
 
+#include <sys/wait.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <libgen.h>
@@ -342,7 +343,28 @@ opkg_prepare_url_for_install(const char *url, char **namep)
 int
 opkg_verify_file (char *text_file, char *sig_file)
 {
-#if defined HAVE_GPGME
+#if defined HAVE_USIGN
+	int status = -1;
+	int pid;
+
+    if (conf->check_signature == 0 )
+        return 0;
+
+	pid = fork();
+	if (pid < 0)
+		return -1;
+
+	if (!pid) {
+		execl("/usr/sbin/opkg-key", "opkg-key", "verify", sig_file, text_file, NULL);
+		exit(255);
+	}
+
+	waitpid(pid, &status, 0);
+	if (!WIFEXITED(status) || WEXITSTATUS(status))
+		return -1;
+
+	return 0;
+#elif defined HAVE_GPGME
     if (conf->check_signature == 0 )
         return 0;
     int status = -1;

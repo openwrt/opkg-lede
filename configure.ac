@@ -169,6 +169,15 @@ if test "x$want_gpgme" = "xyes"; then
   fi
 fi
 
+AC_ARG_ENABLE(usign,
+    AC_HELP_STRING([--enable-usign], [Enable signature checking with usign
+      [[default=yes]] ]),
+    [want_usign="$enableval"], [want_usign="yes"])
+
+if test "x$want_usign" = "xyes"; then
+  AC_DEFINE(HAVE_USIGN, 1, [Define if you want usign support])
+fi
+
 AC_SUBST(GPGME_CFLAGS)
 AC_SUBST(GPGME_LIBS)
 

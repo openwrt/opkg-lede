@@ -169,7 +169,7 @@ opkg_update_cmd(int argc, char **argv)
 			    list_file_name);
 	  }
 	  free(url);
-#if defined(HAVE_GPGME) || defined(HAVE_OPENSSL)
+#if defined(HAVE_GPGME) || defined(HAVE_OPENSSL) || defined(HAVE_USIGN)
           if (conf->check_signature) {
               /* download detached signitures to verify the package lists */
               /* get the url for the sig file */
