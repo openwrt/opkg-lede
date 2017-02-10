@@ -1,4 +1,4 @@
-ACLOCAL_AMFLAGS = -I shave
+ACLOCAL_AMFLAGS = -I shave -I m4
 
 SUBDIRS = libbb libopkg src tests utils man
 
