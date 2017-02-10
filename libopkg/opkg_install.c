@@ -1306,13 +1306,15 @@ opkg_install_pkg(pkg_t *pkg, int from_upgrade)
          if (opkg_verify_file (list_file_name, sig_file_name)){
            opkg_msg(ERROR, "Failed to verify the signature of %s.\n",
                            list_file_name);
-           return -1;
+           if (!conf->force_signature)
+             return -1;
          }
        }else{
          opkg_msg(ERROR, "Signature file is missing for %s. "
                          "Perhaps you need to run 'opkg update'?\n",
 			 pkg->name);
-         return -1;
+         if (!conf->force_signature)
+           return -1;
        }
 
        free (lists_dir);

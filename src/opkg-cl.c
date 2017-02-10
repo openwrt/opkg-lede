@@ -51,6 +51,7 @@ enum {
 	ARGS_OPT_NOCASE,
 	ARGS_OPT_AUTOREMOVE,
 	ARGS_OPT_CACHE,
+	ARGS_OPT_FORCE_SIGNATURE,
 };
 
 static struct option long_options[] = {
@@ -87,6 +88,8 @@ static struct option long_options[] = {
 	{"force_remove", 0, 0, ARGS_OPT_FORCE_REMOVE},
 	{"force-checksum", 0, 0, ARGS_OPT_FORCE_CHECKSUM},
 	{"force_checksum", 0, 0, ARGS_OPT_FORCE_CHECKSUM},
+	{"force-signature", 0, 0, ARGS_OPT_FORCE_SIGNATURE},
+	{"force_signature", 0, 0, ARGS_OPT_FORCE_SIGNATURE},
 	{"noaction", 0, 0, ARGS_OPT_NOACTION},
 	{"download-only", 0, 0, ARGS_OPT_DOWNLOAD_ONLY},
 	{"nodeps", 0, 0, ARGS_OPT_NODEPS},
@@ -209,6 +212,9 @@ args_parse(int argc, char *argv[])
 			break;
         case ARGS_OPT_DOWNLOAD_ONLY:
 			conf->download_only = 1;
+			break;
+		case ARGS_OPT_FORCE_SIGNATURE:
+			conf->force_signature = 1;
 			break;
 		case ':':
 			parse_err = -1;

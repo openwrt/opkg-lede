@@ -80,6 +80,7 @@ struct opkg_conf
      int force_remove;
      int force_checksum;
      int check_signature;
+     int force_signature;
      int nodeps; /* do not follow dependencies */
      int nocase; /* perform case insensitive matching */
      char *offline_root;

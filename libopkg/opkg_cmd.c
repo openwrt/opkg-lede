@@ -196,7 +196,7 @@ opkg_update_cmd(int argc, char **argv)
                   else
                       opkg_msg(NOTICE, "Signature check failed.\n");
               }
-              if (err) {
+              if (err && !conf->force_signature) {
                   /* The signature was wrong so delete it */
                   opkg_msg(NOTICE, "Remove wrong Signature file.\n");
                   unlink (tmp_file_name);
