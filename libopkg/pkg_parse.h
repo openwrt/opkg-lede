@@ -18,10 +18,11 @@
 #ifndef PKG_PARSE_H
 #define PKG_PARSE_H
 
+#include "pkg.h"
+
 int parse_version(pkg_t *pkg, const char *raw);
 int pkg_parse_from_stream(pkg_t *pkg, FILE *fp, uint mask);
-int pkg_parse_from_stream_nomalloc(pkg_t *pkg, FILE *fp, uint mask,
-						char **buf0, size_t buf0len);
+int pkg_parse_line(void *ptr, const char *line, uint mask);
 
 #define EXCESSIVE_LINE_LEN	(4096 << 8)
 
