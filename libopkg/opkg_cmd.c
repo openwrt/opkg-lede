@@ -551,18 +551,6 @@ opkg_upgrade_cmd(int argc, char **argv)
 			    err = -1;
                }
 	  }
-     } else {
-	  pkg_vec_t *installed = pkg_vec_alloc();
-
-	  pkg_info_preinstall_check();
-
-	  pkg_hash_fetch_all_installed(installed);
-	  for (i = 0; i < installed->len; i++) {
-	       pkg = installed->pkgs[i];
-	       if (opkg_upgrade_pkg(pkg))
-		       err = -1;
-	  }
-	  pkg_vec_free(installed);
      }
 
      if (opkg_configure_packages(NULL))
@@ -1258,7 +1246,7 @@ opkg_print_architecture_cmd(int argc, char **argv)
    array for easier maintenance */
 static opkg_cmd_t cmds[] = {
      {"update", 0, (opkg_cmd_fun_t)opkg_update_cmd, PFM_DESCRIPTION|PFM_SOURCE},
-     {"upgrade", 0, (opkg_cmd_fun_t)opkg_upgrade_cmd, PFM_DESCRIPTION|PFM_SOURCE},
+     {"upgrade", 1, (opkg_cmd_fun_t)opkg_upgrade_cmd, PFM_DESCRIPTION|PFM_SOURCE},
      {"list", 0, (opkg_cmd_fun_t)opkg_list_cmd, PFM_SOURCE},
      {"list_installed", 0, (opkg_cmd_fun_t)opkg_list_installed_cmd, PFM_SOURCE},
      {"list-installed", 0, (opkg_cmd_fun_t)opkg_list_installed_cmd, PFM_SOURCE},

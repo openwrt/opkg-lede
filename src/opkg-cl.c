@@ -221,7 +221,7 @@ usage()
 
 	printf("\nPackage Manipulation:\n");
 	printf("\tupdate			Update list of available packages\n");
-	printf("\tupgrade			Upgrade installed packages\n");
+	printf("\tupgrade <pkgs>		Upgrade packages\n");
 	printf("\tinstall <pkgs>		Install package(s)\n");
 	printf("\tconfigure <pkgs>	Configure unpacked package(s)\n");
 	printf("\tremove <pkgs|regexp>	Remove package(s)\n");
