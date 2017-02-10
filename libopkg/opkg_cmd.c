@@ -162,30 +162,7 @@ opkg_update_cmd(int argc, char **argv)
 	      sprintf_alloc(&url, "%s/%s", src->value, src->gzip ? "Packages.gz" : "Packages");
 
 	  sprintf_alloc(&list_file_name, "%s/%s", lists_dir, src->name);
-	  if (src->gzip) {
-	      char *tmp_file_name;
-	      FILE *in, *out;
-
-	      sprintf_alloc (&tmp_file_name, "%s/%s.gz", tmp, src->name);
-	      err = opkg_download(url, tmp_file_name, NULL, NULL, 0);
-	      if (err == 0) {
-		   opkg_msg(NOTICE, "Inflating %s.\n", url);
-		   in = fopen (tmp_file_name, "r");
-		   out = fopen (list_file_name, "w");
-		   if (in && out)
-			unzip (in, out);
-		   else
-			err = 1;
-		   if (in)
-			fclose (in);
-		   if (out)
-			fclose (out);
-		   unlink (tmp_file_name);
-	      }
-	      free(tmp_file_name);
-	  } else
-	      err = opkg_download(url, list_file_name, NULL, NULL, 0);
-	  if (err) {
+	  if (opkg_download(url, list_file_name, NULL, NULL, 0)) {
 	       failures++;
 	  } else {
 	       opkg_msg(NOTICE, "Updated list of available packages in %s.\n",

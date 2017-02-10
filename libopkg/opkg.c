@@ -592,49 +592,8 @@ opkg_update_package_lists(opkg_progress_callback_t progress_callback,
 				      src->gzip ? "Packages.gz" : "Packages");
 
 		sprintf_alloc(&list_file_name, "%s/%s", lists_dir, src->name);
-		if (src->gzip) {
-			FILE *in, *out;
-			struct _curl_cb_data cb_data;
-			char *tmp_file_name = NULL;
 
-			sprintf_alloc(&tmp_file_name, "%s/%s.gz", tmp,
-				      src->name);
-
-			opkg_msg(INFO, "Downloading %s to %s...\n", url,
-					tmp_file_name);
-
-			cb_data.cb = progress_callback;
-			cb_data.progress_data = &pdata;
-			cb_data.user_data = user_data;
-			cb_data.start_range =
-			    100 * sources_done / sources_list_count;
-			cb_data.finish_range =
-			    100 * (sources_done + 1) / sources_list_count;
-
-			err = opkg_download(url, tmp_file_name,
-					  (curl_progress_func) curl_progress_cb,
-					  &cb_data, 0);
-
-			if (err == 0) {
-				opkg_msg(INFO, "Inflating %s...\n",
-						tmp_file_name);
-				in = fopen(tmp_file_name, "r");
-				out = fopen(list_file_name, "w");
-				if (in && out)
-					unzip(in, out);
-				else
-					err = 1;
-				if (in)
-					fclose(in);
-				if (out)
-					fclose(out);
-				unlink(tmp_file_name);
-			}
-			free(tmp_file_name);
-		} else
-			err = opkg_download(url, list_file_name, NULL, NULL, 0);
-
-		if (err) {
+		if (opkg_download(url, list_file_name, NULL, NULL, 0)) {
 			opkg_msg(ERROR, "Couldn't retrieve %s\n", url);
 			result = -1;
 		}

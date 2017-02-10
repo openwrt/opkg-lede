@@ -29,6 +29,7 @@
 #include "sprintf_alloc.h"
 #include "file_util.h"
 #include "libbb/libbb.h"
+#include "libbb/gzip.h"
 
 void
 pkg_hash_init(void)
@@ -106,8 +107,15 @@ pkg_hash_add_from_file(const char *file_name,
 	char *buf;
 	const size_t len = 4096;
 	int ret = 0;
+	struct gzip_handle zh;
 
-	fp = fopen(file_name, "r");
+	if (src && src->gzip) {
+		fp = gzip_fdopen(&zh, file_name);
+	}
+	else {
+		fp = fopen(file_name, "r");
+ 	}
+
 	if (fp == NULL) {
 		opkg_perror(ERROR, "Failed to open %s", file_name);
 		return -1;
@@ -154,6 +162,9 @@ pkg_hash_add_from_file(const char *file_name,
 
 	free(buf);
 	fclose(fp);
+
+	if (src && src->gzip)
+		gzip_close(&zh);
 
 	return ret;
 }
