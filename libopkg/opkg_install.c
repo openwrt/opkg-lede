@@ -1405,9 +1405,11 @@ opkg_install_pkg(pkg_t *pkg, int from_upgrade)
 	  opkg_state_changed++;
 	  pkg->state_flag |= SF_FILELIST_CHANGED;
 
-	  if (old_pkg)
+	  if (old_pkg) {
                pkg_remove_orphan_dependent(pkg, old_pkg);
-
+	       old_pkg->is_upgrade = 1;
+	       pkg->is_upgrade = 1;
+	  }
 	  /* XXX: BUG: we really should treat replacement more like an upgrade
 	   *      Instead, we're going to remove the replacees
 	   */
@@ -1466,7 +1468,7 @@ opkg_install_pkg(pkg_t *pkg, int from_upgrade)
 	  }
 
 
-	  opkg_msg(INFO, "Installing maintainer scripts.\n");
+	  opkg_msg(INFO, "%s maintainer scripts.\n", (pkg->is_upgrade) ? ("Upgrading") : ("Installing"));
 	  if (install_maintainer_scripts(pkg, old_pkg)) {
 		opkg_msg(ERROR, "Failed to extract maintainer scripts for %s."
 			       " Package debris may remain!\n",

@@ -184,6 +184,7 @@ struct pkg
      /* this flag specifies whether the package was installed to satisfy another
       * package's dependancies */
      int auto_installed;
+     int is_upgrade;
 };
 
 pkg_t *pkg_new(void);

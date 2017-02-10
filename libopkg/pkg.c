@@ -1285,6 +1285,12 @@ pkg_run_script(pkg_t *pkg, const char *script, const char *args)
      setenv("PKG_ROOT",
 	    pkg->dest ? pkg->dest->root_dir : conf->default_dest->root_dir, 1);
 
+	if (pkg->is_upgrade)
+		setenv("PKG_UPGRADE", "1", 1);
+	else
+		setenv("PKG_UPGRADE", "0", 1);
+
+
      if (! file_exists(path)) {
 	  free(path);
 	  return 0;
