@@ -18,7 +18,6 @@
 #include <stdio.h>
 
 #include "hash_table.h"
-#include "release.h"
 #include "pkg.h"
 #include "opkg_message.h"
 #include "pkg_vec.h"
@@ -183,40 +182,6 @@ pkg_hash_load_feeds(void)
 
 	lists_dir = conf->restrict_to_default_dest ?
 		conf->default_dest->lists_dir : conf->lists_dir;
-
-	for (iter = void_list_first(&conf->dist_src_list); iter;
-			iter = void_list_next(&conf->dist_src_list, iter)) {
-
-		src = (pkg_src_t *)iter->data;
-
-		sprintf_alloc(&list_file, "%s/%s", lists_dir, src->name);
-
-		if (file_exists(list_file)) {
-			int i;
-			release_t *release = release_new();
-			if(release_init_from_file(release, list_file)) {
-				free(list_file);
-				return -1;
-			}
-
-			unsigned int ncomp;
-			const char **comps = release_comps(release, &ncomp);
-			subdist = (pkg_src_t *) xmalloc(sizeof(pkg_src_t));
-			memcpy(subdist, src, sizeof(pkg_src_t));
-
-			for(i = 0; i < ncomp; i++){
-				subdist->name = NULL;
-				sprintf_alloc(&subdist->name, "%s-%s", src->name, comps[i]);
-				if (dist_hash_add_from_file(lists_dir, subdist)) {
-					free(subdist->name); free(subdist);
-					free(list_file);
-					return -1;
-				}
-			}
-			free(subdist->name); free(subdist);
-		}
-		free(list_file);
-	}
 
 	for (iter = void_list_first(&conf->pkg_src_list); iter;
 			iter = void_list_next(&conf->pkg_src_list, iter)) {
