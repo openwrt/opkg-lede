@@ -246,6 +246,7 @@ usage()
 	printf("\tlist-changed-conffiles	List user modified configuration files\n");
 	printf("\tfiles <pkg>		List files belonging to <pkg>\n");
 	printf("\tsearch <file|regexp>	List package providing <file>\n");
+	printf("\tfind <regexp>		List packages whose name or description matches <regexp>\n");
 	printf("\tinfo [pkg|regexp]	Display all info for <pkg>\n");
 	printf("\tstatus [pkg|regexp]	Display all status for <pkg>\n");
 	printf("\tdownload <pkg>		Download <pkg> to current directory\n");
