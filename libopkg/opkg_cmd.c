@@ -85,6 +85,7 @@ opkg_update_cmd(int argc, char **argv)
      char *tmp;
      int err;
      int failures;
+     int pkglist_dl_error;
      char *lists_dir;
      pkg_src_list_elt_t *iter;
      pkg_src_t *src;
@@ -130,15 +131,19 @@ opkg_update_cmd(int argc, char **argv)
 	      sprintf_alloc(&url, "%s/%s", src->value, src->gzip ? "Packages.gz" : "Packages");
 
 	  sprintf_alloc(&list_file_name, "%s/%s", lists_dir, src->name);
+	  pkglist_dl_error = 0;
 	  if (opkg_download(url, list_file_name, NULL, NULL, 0)) {
 	       failures++;
+	       pkglist_dl_error = 1;
+	       opkg_msg(NOTICE, "*** Failed to download the package list from %s\n\n",
+			    url);
 	  } else {
-	       opkg_msg(NOTICE, "Updated list of available packages in %s.\n",
+	       opkg_msg(NOTICE, "Updated list of available packages in %s\n",
 			    list_file_name);
 	  }
 	  free(url);
 #if defined(HAVE_GPGME) || defined(HAVE_OPENSSL) || defined(HAVE_USIGN)
-          if (conf->check_signature) {
+          if (pkglist_dl_error == 0 && conf->check_signature) {
               /* download detached signitures to verify the package lists */
               /* get the url for the sig file */
               if (src->extra_data)	/* debian style? */
@@ -156,7 +161,7 @@ opkg_update_cmd(int argc, char **argv)
               err = opkg_download(url, tmp_file_name, NULL, NULL, 0);
               if (err) {
                   failures++;
-                  opkg_msg(NOTICE, "Signature check failed.\n");
+                  opkg_msg(NOTICE, "Signature file download failed.\n");
               } else {
                   err = opkg_verify_file (list_file_name, tmp_file_name);
                   if (err == 0)

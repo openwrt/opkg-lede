@@ -91,7 +91,7 @@ opkg_download(const char *src, const char *dest_file_name,
     char *src_base = basename(src_basec);
     char *tmp_file_location;
 
-    opkg_msg(NOTICE,"Downloading %s.\n", src);
+    opkg_msg(NOTICE,"Downloading %s\n", src);
 
     if (str_starts_with(src, "file:")) {
 	const char *file_src = src + 5;
@@ -175,6 +175,8 @@ opkg_download(const char *src, const char *dest_file_name,
 
       if (res) {
 	opkg_msg(ERROR, "Failed to download %s, wget returned %d.\n", src, res);
+	if (res == 4)
+	    opkg_msg(ERROR, "Check your network settings and connectivity.\n\n");
 	free(tmp_file_location);
 	return -1;
       }
