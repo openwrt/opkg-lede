@@ -47,10 +47,12 @@ static void
 print_pkg(pkg_t *pkg)
 {
 	char *version = pkg_version_str_alloc(pkg);
+	printf("%s - %s", pkg->name, version);
+	if (conf->size)
+		printf(" - %lu", pkg->size);
 	if (pkg->description)
-		printf("%s - %s - %s\n", pkg->name, version, pkg->description);
-	else
-		printf("%s - %s\n", pkg->name, version);
+		printf(" - %s", pkg->description);
+	printf("\n");
 	free(version);
 }
 

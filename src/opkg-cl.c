@@ -52,6 +52,7 @@ enum {
 	ARGS_OPT_AUTOREMOVE,
 	ARGS_OPT_CACHE,
 	ARGS_OPT_FORCE_SIGNATURE,
+	ARGS_OPT_SIZE,
 };
 
 static struct option long_options[] = {
@@ -98,6 +99,7 @@ static struct option long_options[] = {
 	{"offline-root", 1, 0, 'o'},
 	{"add-arch", 1, 0, ARGS_OPT_ADD_ARCH},
 	{"add-dest", 1, 0, ARGS_OPT_ADD_DEST},
+	{"size", 0, 0, ARGS_OPT_SIZE},
 	{"test", 0, 0, ARGS_OPT_NOACTION},
 	{"tmp-dir", 1, 0, 't'},
 	{"tmp_dir", 1, 0, 't'},
@@ -212,6 +214,9 @@ args_parse(int argc, char *argv[])
 			}
 			free(tuple);
 			break;
+		case ARGS_OPT_SIZE:
+			conf->size = 1;
+			break;
 		case ARGS_OPT_NOACTION:
 			conf->noaction = 1;
 			break;
@@ -315,6 +320,7 @@ usage()
 	printf("\t--download-only	No action -- download only\n");
 	printf("\t--nodeps		Do not follow dependencies\n");
 	printf("\t--nocase		Perform case insensitive pattern matching\n");
+	printf("\t--size			Print package size when listing available packages\n");
 	printf("\t--force-removal-of-dependent-packages\n");
 	printf("\t			Remove package and all dependencies\n");
 	printf("\t--autoremove		Remove packages that were installed\n");
