@@ -25,12 +25,15 @@ opkg_list_sources = conffile.c conffile.h conffile_list.c conffile_list.h \
 		    pkg_src.c pkg_src.h pkg_src_list.c pkg_src_list.h \
 		    str_list.c str_list.h void_list.c void_list.h \
 		    active_list.c active_list.h list.h 
-opkg_util_sources = file_util.c file_util.h opkg_message.h opkg_message.c md5.c md5.h \
+opkg_util_sources = file_util.c file_util.h opkg_message.h opkg_message.c \
 		    parse_util.c parse_util.h \
 		    sprintf_alloc.c sprintf_alloc.h \
 		    xregex.c xregex.h xsystem.c xsystem.h
 if HAVE_PATHFINDER
 opkg_util_sources += opkg_pathfinder.c opkg_pathfinder.h
+endif
+if HAVE_MD5
+opkg_util_sources += md5.c md5.h
 endif
 if HAVE_SHA256
 opkg_util_sources += sha256.c sha256.h

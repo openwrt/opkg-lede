@@ -36,7 +36,7 @@ void conffile_deinit(conffile_t *conffile)
 
 int conffile_has_been_modified(conffile_t *conffile)
 {
-    char *md5sum;
+    char *chksum;
     char *filename = conffile->name;
     char *root_filename;
     int ret = 1;
@@ -48,16 +48,23 @@ int conffile_has_been_modified(conffile_t *conffile)
 
     root_filename = root_filename_alloc(filename);
 
-    md5sum = file_md5sum_alloc(root_filename);
-
-    if (md5sum && (ret = strcmp(md5sum, conffile->value))) {
-        opkg_msg(INFO, "Conffile %s:\n\told md5=%s\n\tnew md5=%s\n",
-		conffile->name, md5sum, conffile->value);
+#ifdef HAVE_MD5
+    if(conffile->value && strlen(conffile->value) > 33) {
+        chksum = file_sha256sum_alloc(root_filename);
+    } else {
+        chksum = file_md5sum_alloc(root_filename);
+    }
+#else
+    chksum = file_sha256sum_alloc(root_filename);
+#endif
+    if (chksum && (ret = strcmp(chksum, conffile->value))) {
+        opkg_msg(INFO, "Conffile %s:\n\told chk=%s\n\tnew chk=%s\n",
+		conffile->name, chksum, conffile->value);
     }
 
     free(root_filename);
-    if (md5sum)
-        free(md5sum);
+    if (chksum)
+        free(chksum);
 
     return ret;
 }

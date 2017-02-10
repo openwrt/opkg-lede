@@ -26,7 +26,9 @@
 
 #include "sprintf_alloc.h"
 #include "file_util.h"
+#ifdef HAVE_MD5
 #include "md5.h"
+#endif
 #include "libbb/libbb.h"
 
 #if defined HAVE_SHA256
@@ -135,6 +137,7 @@ file_mkdir_hier(const char *path, long mode)
 	return make_directory(path, mode, FILEUTILS_RECUR);
 }
 
+#ifdef HAVE_MD5
 char *file_md5sum_alloc(const char *file_name)
 {
     static const int md5sum_bin_len = 16;
@@ -180,6 +183,7 @@ char *file_md5sum_alloc(const char *file_name)
 
     return md5sum_hex;
 }
+#endif
 
 #ifdef HAVE_SHA256
 char *file_sha256sum_alloc(const char *file_name)

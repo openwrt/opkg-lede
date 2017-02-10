@@ -49,9 +49,9 @@ parse_status(pkg_t *pkg, const char *sstr)
 static void
 parse_conffiles(pkg_t *pkg, const char *cstr)
 {
-	char file_name[1024], md5sum[35];
+	char file_name[1024], md5sum[85];
 
-	if (sscanf(cstr, "%1023s %34s", file_name, md5sum) != 2) {
+	if (sscanf(cstr, "%1023s %84s", file_name, md5sum) != 2) {
 		opkg_msg(ERROR, "Failed to parse Conffiles line for %s\n",
 				pkg->name);
 		return;

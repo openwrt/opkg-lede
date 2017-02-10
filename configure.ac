@@ -68,10 +68,19 @@ AC_ARG_ENABLE(sha256,
       (sha256.{c,h} are GPLv3 licensed) [[default=no]] ]),
     [want_sha256="$enableval"], [want_sha256="no"])
 
+AC_ARG_ENABLE(md5,
+              AC_HELP_STRING([--enable-md5], [Enable md5sum check
+      (md5.{c,h} are GPLv3 licensed) [[default=no]] ]),
+    [want_md5="$enableval"], [want_md5="yes"])
+
 if test "x$want_sha256" = "xyes"; then
   AC_DEFINE(HAVE_SHA256, 1, [Define if you want sha256 support])
 fi
+if test "x$want_md5" = "xyes"; then
+  AC_DEFINE(HAVE_MD5, 1, [Define if you want md5 support])
+fi
 AM_CONDITIONAL(HAVE_SHA256, test "x$want_sha256" = "xyes")
+AM_CONDITIONAL(HAVE_MD5, test "x$want_md5" = "xyes")
 
 # check for openssl
 AC_ARG_ENABLE(openssl,

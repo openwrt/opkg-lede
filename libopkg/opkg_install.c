@@ -1082,7 +1082,7 @@ resolve_conffiles(pkg_t *pkg)
      conffile_list_elt_t *iter;
      conffile_t *cf;
      char *cf_backup;
-     char *md5sum;
+     char *chksum;
 
      if (conf->noaction) return 0;
 
@@ -1093,7 +1093,7 @@ resolve_conffiles(pkg_t *pkg)
 
 	  /* Might need to initialize the md5sum for each conffile */
 	  if (cf->value == NULL) {
-	       cf->value = file_md5sum_alloc(root_filename);
+	       cf->value = file_sha256sum_alloc(root_filename);
 	  }
 
 	  if (!file_exists(root_filename)) {
@@ -1105,8 +1105,16 @@ resolve_conffiles(pkg_t *pkg)
 
           if (file_exists(cf_backup)) {
               /* Let's compute md5 to test if files are changed */
-              md5sum = file_md5sum_alloc(cf_backup);
-              if (md5sum && cf->value && strcmp(cf->value,md5sum) != 0 ) {
+#ifdef HAVE_MD5
+              if(cf->value && strlen(cf->value) > 33) {
+                  chksum = file_sha256sum_alloc(cf_backup);
+              } else {
+                  chksum = file_md5sum_alloc(cf_backup);
+              }
+#else
+              chksum = file_sha256sum_alloc(cf_backup);
+#endif
+              if (chksum && cf->value && strcmp(cf->value,chksum) != 0 ) {
                   if (conf->force_maintainer) {
                       opkg_msg(NOTICE, "Conffile %s using maintainer's setting.\n",
 				      cf_backup);
@@ -1123,8 +1131,8 @@ resolve_conffiles(pkg_t *pkg)
 		  }
               }
               unlink(cf_backup);
-	      if (md5sum)
-                  free(md5sum);
+	      if (chksum)
+                  free(chksum);
           }
 
 	  free(cf_backup);
@@ -1323,6 +1331,7 @@ opkg_install_pkg(pkg_t *pkg, int from_upgrade)
      }
      #endif
 
+#ifdef HAVE_MD5
      /* Check for md5 values */
      if (pkg->md5sum)
      {
@@ -1346,6 +1355,7 @@ opkg_install_pkg(pkg_t *pkg, int from_upgrade)
 	 if (file_md5)
               free(file_md5);
      }
+#endif
 
 #ifdef HAVE_SHA256
      /* Check for sha256 value */
