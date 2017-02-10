@@ -207,6 +207,9 @@ args_parse(int argc, char *argv[])
 		}
 	}
 
+	if(!conf->conf_file && !conf->offline_root)
+		conf->conf_file = xstrdup("/etc/opkg.conf");
+
 	if (parse_err)
 		return parse_err;
 	else
