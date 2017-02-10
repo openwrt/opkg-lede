@@ -38,16 +38,10 @@ if HAVE_SHA256
 opkg_util_sources += sha256.c sha256.h
 endif
 
-lib_LTLIBRARIES = libopkg.la
-libopkg_la_SOURCES = \
+noinst_LIBRARIES = libopkg.a
+libopkg_a_SOURCES = \
 	$(opkg_libcore_sources) \
 	$(opkg_cmd_sources) $(opkg_db_sources) \
 	$(opkg_util_sources) $(opkg_list_sources)
 
-libopkg_la_LIBADD = $(top_builddir)/libbb/libbb.la $(CURL_LIBS) $(GPGME_LIBS) $(OPENSSL_LIBS) $(PATHFINDER_LIBS)
-
-# make sure we only export symbols that are for public use
-#libopkg_la_LDFLAGS = -export-symbols-regex "^opkg_.*"
-
-
-
+libopkg_a_LIBADD = $(top_builddir)/libbb/libbb.a
