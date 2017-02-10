@@ -101,8 +101,6 @@ static void pkg_init(pkg_t * pkg)
 	pkg->provides_count = 0;
 	pkg->provides = NULL;
 	pkg->tmp_unpack_dir = NULL;
-	pkg->size = 0;
-	pkg->installed_size = 0;
 	conffile_list_init(&pkg->conffiles);
 	pkg->installed_files = NULL;
 	pkg->installed_files_ref_cnt = 0;
@@ -393,10 +391,10 @@ int pkg_merge(pkg_t * oldpkg, pkg_t * newpkg)
 		pkg_set_string(oldpkg, PKG_MD5SUM, pkg_get_string(newpkg, PKG_MD5SUM));
 	if (!pkg_get_string(oldpkg, PKG_SHA256SUM))
 		pkg_set_string(oldpkg, PKG_SHA256SUM, pkg_get_string(newpkg, PKG_SHA256SUM));
-	if (!oldpkg->size)
-		oldpkg->size = newpkg->size;
-	if (!oldpkg->installed_size)
-		oldpkg->installed_size = newpkg->installed_size;
+	if (!pkg_get_int(oldpkg, PKG_SIZE))
+		pkg_set_int(oldpkg, PKG_SIZE, pkg_get_int(newpkg, PKG_SIZE));
+	if (!pkg_get_int(oldpkg, PKG_INSTALLED_SIZE))
+		pkg_set_int(oldpkg, PKG_INSTALLED_SIZE, pkg_get_int(newpkg, PKG_INSTALLED_SIZE));
 	if (!pkg_get_string(oldpkg, PKG_PRIORITY))
 		pkg_set_string(oldpkg, PKG_PRIORITY, pkg_get_string(newpkg, PKG_PRIORITY));
 	if (!pkg_get_string(oldpkg, PKG_SOURCE))
@@ -694,12 +692,14 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 	case 'i':
 	case 'I':
 		if (strcasecmp(field, "Installed-Size") == 0) {
-			fprintf(fp, "Installed-Size: %ld\n",
-				pkg->installed_size);
-		} else if (strcasecmp(field, "Installed-Time") == 0
-			   && pkg->installed_time) {
-			fprintf(fp, "Installed-Time: %lu\n",
-				pkg->installed_time);
+			fprintf(fp, "Installed-Size: %lu\n",
+				(unsigned long) pkg_get_int(pkg, PKG_INSTALLED_SIZE));
+		} else if (strcasecmp(field, "Installed-Time") == 0) {
+			i = pkg_get_int(pkg, PKG_INSTALLED_TIME);
+			if (i) {
+				fprintf(fp, "Installed-Time: %lu\n",
+					(unsigned long) i);
+			}
 		}
 		break;
 	case 'm':
@@ -781,8 +781,9 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 			}
 #endif
 		} else if (strcasecmp(field, "Size") == 0) {
-			if (pkg->size) {
-				fprintf(fp, "Size: %ld\n", pkg->size);
+			i = pkg_get_int(pkg, PKG_SIZE);
+			if (i) {
+				fprintf(fp, "Size: %lu\n", (unsigned long) i);
 			}
 		} else if (strcasecmp(field, "Source") == 0) {
 			p = pkg_get_string(pkg, PKG_SOURCE);

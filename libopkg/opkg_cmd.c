@@ -49,7 +49,7 @@ static void print_pkg(pkg_t * pkg)
 	char *description = pkg_get_string(pkg, PKG_DESCRIPTION);
 	printf("%s - %s", pkg->name, version);
 	if (conf->size)
-		printf(" - %lu", pkg->size);
+		printf(" - %lu", (unsigned long) pkg_get_int(pkg, PKG_SIZE));
 	if (description)
 		printf(" - %s", description);
 	printf("\n");

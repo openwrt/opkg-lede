@@ -193,10 +193,13 @@ static int update_file_ownership(pkg_t * new_pkg, pkg_t * old_pkg)
 static int verify_pkg_installable(pkg_t * pkg)
 {
 	unsigned long kbs_available, pkg_size_kbs;
+	unsigned long installed_size;
 	char *root_dir = NULL;
 	struct stat s;
 
-	if (conf->force_space || pkg->installed_size == 0)
+	installed_size = (unsigned long) pkg_get_int(pkg, PKG_INSTALLED_SIZE);
+
+	if (conf->force_space || installed_size == 0)
 		return 0;
 
 	if (pkg->dest) {
@@ -212,7 +215,7 @@ static int verify_pkg_installable(pkg_t * pkg)
 
 	kbs_available = get_available_kbytes(root_dir);
 
-	pkg_size_kbs = (pkg->installed_size + 1023) / 1024;
+	pkg_size_kbs = (installed_size + 1023) / 1024;
 
 	if (pkg_size_kbs >= kbs_available) {
 		opkg_msg(ERROR, "Only have %ldkb available on filesystem %s, "
@@ -1256,6 +1259,7 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 #endif
 	sigset_t newset, oldset;
 	const char *local_filename;
+	time_t now;
 
 	if (from_upgrade)
 		message = 1;	/* Coming from an upgrade, and should change the output message */
@@ -1551,7 +1555,8 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 	if (old_pkg)
 		old_pkg->state_status = SS_NOT_INSTALLED;
 
-	time(&pkg->installed_time);
+	now = time(NULL);
+	pkg_set_int(pkg, PKG_INSTALLED_TIME, now);
 
 	ab_pkg = pkg->parent;
 	if (ab_pkg)

@@ -65,14 +65,15 @@ void print_package(pkg_t * pkg)
 	       "Architecture: %s\n"
 	       "Description:  %s\n"
 	       "Tags:         %s\n"
-	       "Size:         %ld\n"
+	       "Size:         %lu\n"
 	       "Status:       %d\n",
 	       pkg->name,
 	       v,
 	       pkg->src->name,
 	       pkg_get_string(pkg, PKG_ARCHITECTURE),
 	       pkg_get_string(pkg, PKG_DESCRIPTION),
-	       tags ? tags : "", pkg->size, pkg->state_status);
+	       tags ? tags : "",
+	       (unsigned long) pkg_get_int(pkg, PKG_SIZE), pkg->state_status);
 	free(v);
 }
 

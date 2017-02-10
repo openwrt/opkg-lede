@@ -93,6 +93,9 @@ enum pkg_fields {
 	PKG_DESCRIPTION,
 	PKG_MD5SUM,
 	PKG_SHA256SUM,
+	PKG_SIZE,
+	PKG_INSTALLED_SIZE,
+	PKG_INSTALLED_TIME,
 };
 
 struct abstract_pkg {
@@ -164,10 +167,7 @@ struct pkg {
 	abstract_pkg_t *parent;
 
 	char *tmp_unpack_dir;
-	unsigned long size;	/* in bytes */
-	unsigned long installed_size;	/* in bytes */
 	conffile_list_t conffiles;
-	time_t installed_time;
 	/* As pointer for lazy evaluation */
 	str_list_t *installed_files;
 	/* XXX: CLEANUP: I'd like to perhaps come up with a better
