@@ -171,15 +171,16 @@ struct pkg {
 	   installed_files list was being freed from an inner loop while
 	   still being used within an outer loop. */
 	int installed_files_ref_cnt;
-	int essential;
 	int arch_priority;
+
+	int essential:1;
 /* Adding this flag, to "force" opkg to choose a "provided_by_hand" package, if there are multiple choice */
-	int provided_by_hand;
+	int provided_by_hand:1;
 
 	/* this flag specifies whether the package was installed to satisfy another
 	 * package's dependancies */
-	int auto_installed;
-	int is_upgrade;
+	int auto_installed:1;
+	int is_upgrade:1;
 };
 
 pkg_t *pkg_new(void);
