@@ -54,6 +54,7 @@ opkg_option_t options[] = {
 	  { "force_reinstall", OPKG_OPT_TYPE_BOOL, &_conf.force_reinstall },
 	  { "force_space", OPKG_OPT_TYPE_BOOL, &_conf.force_space },
 	  { "force_postinstall", OPKG_OPT_TYPE_BOOL, &_conf.force_postinstall },
+	  { "force_checksum", OPKG_OPT_TYPE_BOOL, &_conf.force_checksum },
           { "check_signature", OPKG_OPT_TYPE_BOOL, &_conf.check_signature },
 	  { "ftp_proxy", OPKG_OPT_TYPE_STRING, &_conf.ftp_proxy },
 	  { "http_proxy", OPKG_OPT_TYPE_STRING, &_conf.http_proxy },

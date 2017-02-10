@@ -42,6 +42,7 @@ enum {
 	ARGS_OPT_FORCE_SPACE,
 	ARGS_OPT_FORCE_POSTINSTALL,
 	ARGS_OPT_FORCE_REMOVE,
+	ARGS_OPT_FORCE_CHECKSUM,
 	ARGS_OPT_ADD_ARCH,
 	ARGS_OPT_ADD_DEST,
 	ARGS_OPT_NOACTION,
@@ -84,6 +85,8 @@ static struct option long_options[] = {
 	{"force_postinstall", 0, 0, ARGS_OPT_FORCE_POSTINSTALL},
 	{"force-remove", 0, 0, ARGS_OPT_FORCE_REMOVE},
 	{"force_remove", 0, 0, ARGS_OPT_FORCE_REMOVE},
+	{"force-checksum", 0, 0, ARGS_OPT_FORCE_CHECKSUM},
+	{"force_checksum", 0, 0, ARGS_OPT_FORCE_CHECKSUM},
 	{"noaction", 0, 0, ARGS_OPT_NOACTION},
 	{"download-only", 0, 0, ARGS_OPT_DOWNLOAD_ONLY},
 	{"nodeps", 0, 0, ARGS_OPT_NODEPS},
@@ -177,6 +180,9 @@ args_parse(int argc, char *argv[])
 			break;
 		case ARGS_OPT_FORCE_REMOVE:
 			conf->force_remove = 1;
+			break;
+		case ARGS_OPT_FORCE_CHECKSUM:
+			conf->force_checksum = 1;
 			break;
 		case ARGS_OPT_NODEPS:
 			conf->nodeps = 1;
@@ -293,6 +299,7 @@ usage()
 	printf("\t--force-space		Disable free space checks\n");
 	printf("\t--force-postinstall	Run postinstall scripts even in offline mode\n");
 	printf("\t--force-remove	Remove package even if prerm script fails\n");
+	printf("\t--force-checksum	Don't fail on checksum mismatches\n");
 	printf("\t--noaction		No action -- test only\n");
 	printf("\t--download-only	No action -- download only\n");
 	printf("\t--nodeps		Do not follow dependencies\n");
