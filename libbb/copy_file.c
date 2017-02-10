@@ -41,9 +41,9 @@ int copy_file(const char *source, const char *dest, int flags)
 	int status = 0;
 
 	if (((flags & FILEUTILS_PRESERVE_SYMLINKS) &&
-			lstat(source, &source_stat) < 0) ||
-			(!(flags & FILEUTILS_PRESERVE_SYMLINKS) &&
-			 stat(source, &source_stat) < 0)) {
+	     lstat(source, &source_stat) < 0) ||
+	    (!(flags & FILEUTILS_PRESERVE_SYMLINKS) &&
+	     stat(source, &source_stat) < 0)) {
 		perror_msg("%s", source);
 		return -1;
 	}
@@ -57,7 +57,7 @@ int copy_file(const char *source, const char *dest, int flags)
 	}
 
 	if (dest_exists && source_stat.st_rdev == dest_stat.st_rdev &&
-			source_stat.st_ino == dest_stat.st_ino) {
+	    source_stat.st_ino == dest_stat.st_ino) {
 		error_msg("`%s' and `%s' are the same file", source, dest);
 		return -1;
 	}
@@ -89,7 +89,8 @@ int copy_file(const char *source, const char *dest, int flags)
 
 			if (mkdir(dest, mode) < 0) {
 				umask(saved_umask);
-				perror_msg("cannot create directory `%s'", dest);
+				perror_msg("cannot create directory `%s'",
+					   dest);
 				return -1;
 			}
 
@@ -107,7 +108,7 @@ int copy_file(const char *source, const char *dest, int flags)
 			char *new_source, *new_dest;
 
 			if (strcmp(d->d_name, ".") == 0 ||
-					strcmp(d->d_name, "..") == 0)
+			    strcmp(d->d_name, "..") == 0)
 				continue;
 
 			new_source = concat_path_file(source, d->d_name);
@@ -126,8 +127,9 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 
 		if (!dest_exists &&
-				chmod(dest, source_stat.st_mode & ~saved_umask) < 0) {
-			perror_msg("unable to change permissions of `%s'", dest);
+		    chmod(dest, source_stat.st_mode & ~saved_umask) < 0) {
+			perror_msg("unable to change permissions of `%s'",
+				   dest);
 			status = -1;
 		}
 	} else if (S_ISREG(source_stat.st_mode)) {
@@ -141,7 +143,8 @@ int copy_file(const char *source, const char *dest, int flags)
 				}
 
 				if (unlink(dest) < 0) {
-					perror_msg("unable to remove `%s'", dest);
+					perror_msg("unable to remove `%s'",
+						   dest);
 					return -1;
 				}
 
@@ -152,8 +155,10 @@ int copy_file(const char *source, const char *dest, int flags)
 		if (!dest_exists) {
 			int fd;
 
-			if ((fd = open(dest, O_WRONLY|O_CREAT, source_stat.st_mode)) < 0 ||
-					(dfp = fdopen(fd, "w")) == NULL) {
+			if ((fd =
+			     open(dest, O_WRONLY | O_CREAT,
+				  source_stat.st_mode)) < 0
+			    || (dfp = fdopen(fd, "w")) == NULL) {
 				if (fd >= 0)
 					close(fd);
 				perror_msg("unable to open `%s'", dest);
@@ -180,8 +185,8 @@ int copy_file(const char *source, const char *dest, int flags)
 			perror_msg("unable to close `%s'", source);
 			status = -1;
 		}
-	} else if (S_ISBLK(source_stat.st_mode) || S_ISCHR(source_stat.st_mode) ||
-			S_ISSOCK(source_stat.st_mode)) {
+	} else if (S_ISBLK(source_stat.st_mode) || S_ISCHR(source_stat.st_mode)
+		   || S_ISSOCK(source_stat.st_mode)) {
 		if (mknod(dest, source_stat.st_mode, source_stat.st_rdev) < 0) {
 			perror_msg("unable to create `%s'", dest);
 			return -1;
@@ -201,8 +206,11 @@ int copy_file(const char *source, const char *dest, int flags)
 
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
 		if (flags & FILEUTILS_PRESERVE_STATUS)
-			if (lchown(dest, source_stat.st_uid, source_stat.st_gid) < 0)
-				perror_msg("unable to preserve ownership of `%s'", dest);
+			if (lchown(dest, source_stat.st_uid, source_stat.st_gid)
+			    < 0)
+				perror_msg
+				    ("unable to preserve ownership of `%s'",
+				     dest);
 #endif
 		return 0;
 	} else {
@@ -221,10 +229,12 @@ end:
 			perror_msg("unable to preserve times of `%s'", dest);
 		if (chown(dest, source_stat.st_uid, source_stat.st_gid) < 0) {
 			source_stat.st_mode &= ~(S_ISUID | S_ISGID);
-			perror_msg("unable to preserve ownership of `%s'", dest);
+			perror_msg("unable to preserve ownership of `%s'",
+				   dest);
 		}
 		if (chmod(dest, source_stat.st_mode) < 0)
-			perror_msg("unable to preserve permissions of `%s'", dest);
+			perror_msg("unable to preserve permissions of `%s'",
+				   dest);
 	}
 
 	return status;

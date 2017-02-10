@@ -18,29 +18,29 @@
 #include "xregex.h"
 #include "libbb/libbb.h"
 
-static void print_regcomp_err(const regex_t *preg, int err);
+static void print_regcomp_err(const regex_t * preg, int err);
 
-int xregcomp(regex_t *preg, const char *regex, int cflags)
+int xregcomp(regex_t * preg, const char *regex, int cflags)
 {
-    int err;
-    err = regcomp(preg, regex, cflags);
-    if (err) {
-	print_regcomp_err(preg, err);
-    }
+	int err;
+	err = regcomp(preg, regex, cflags);
+	if (err) {
+		print_regcomp_err(preg, err);
+	}
 
-    return err;
+	return err;
 }
 
-static void print_regcomp_err(const regex_t *preg, int err)
+static void print_regcomp_err(const regex_t * preg, int err)
 {
-    unsigned int size;
-    char *error;
+	unsigned int size;
+	char *error;
 
-    size = regerror(err, preg, 0, 0);
-    error = xcalloc(1, size);
-    regerror(err, preg, error, size);
+	size = regerror(err, preg, 0, 0);
+	error = xcalloc(1, size);
+	regerror(err, preg, error, size);
 
-    opkg_msg(ERROR, "Internal error compiling regex: %s.", error);
+	opkg_msg(ERROR, "Internal error compiling regex: %s.", error);
 
-    free(error);
+	free(error);
 }

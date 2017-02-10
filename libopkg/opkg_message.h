@@ -21,17 +21,17 @@
 #include <errno.h>
 
 typedef enum {
-	ERROR,	/* error conditions */
-	NOTICE,	/* normal but significant condition */
-	INFO,	/* informational message */
-	DEBUG,	/* debug level message */
-	DEBUG2,	/* more debug level message */
+	ERROR,			/* error conditions */
+	NOTICE,			/* normal but significant condition */
+	INFO,			/* informational message */
+	DEBUG,			/* debug level message */
+	DEBUG2,			/* more debug level message */
 } message_level_t;
 
 void free_error_list(void);
 void print_error_list(void);
 void opkg_message(message_level_t level, const char *fmt, ...)
-				__attribute__ ((format (printf, 2, 3)));
+    __attribute__ ((format(printf, 2, 3)));
 
 #define opkg_msg(l, fmt, args...) \
 	do { \

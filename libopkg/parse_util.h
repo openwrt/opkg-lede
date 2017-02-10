@@ -20,10 +20,11 @@
 
 int is_field(const char *type, const char *line);
 char *parse_simple(const char *type, const char *line);
-char **parse_list(const char *raw, unsigned int *count, const char sep, int skip_field);
+char **parse_list(const char *raw, unsigned int *count, const char sep,
+		  int skip_field);
 
-typedef int (*parse_line_t)(void *, const char *, uint);
-int parse_from_stream_nomalloc(parse_line_t parse_line, void *item, FILE *fp, uint mask,
-						char **buf0, size_t buf0len);
+typedef int (*parse_line_t) (void *, const char *, uint);
+int parse_from_stream_nomalloc(parse_line_t parse_line, void *item, FILE * fp,
+			       uint mask, char **buf0, size_t buf0len);
 
 #endif

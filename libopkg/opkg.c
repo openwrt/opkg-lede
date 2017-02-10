@@ -43,8 +43,7 @@
 
 /** Private Functions ***/
 
-static int
-opkg_configure_packages(char *pkg_name)
+static int opkg_configure_packages(char *pkg_name)
 {
 	pkg_vec_t *all;
 	int i;
@@ -85,10 +84,9 @@ struct _curl_cb_data {
 	int finish_range;
 };
 
-int
-curl_progress_cb(struct _curl_cb_data *cb_data, double t,	/* dltotal */
-		double d,	/* dlnow */
-		double ultotal, double ulnow)
+int curl_progress_cb(struct _curl_cb_data *cb_data, double t,	/* dltotal */
+		     double d,	/* dlnow */
+		     double ultotal, double ulnow)
 {
 	int p = (t) ? d * 100 / t : 0;
 	static int prev = -1;
@@ -111,12 +109,10 @@ curl_progress_cb(struct _curl_cb_data *cb_data, double t,	/* dltotal */
 	return 0;
 }
 
-
 static struct opkg_conf saved_conf;
 /*** Public API ***/
 
-int
-opkg_new()
+int opkg_new()
 {
 	saved_conf = *conf;
 
@@ -141,8 +137,7 @@ err0:
 	return -1;
 }
 
-void
-opkg_free(void)
+void opkg_free(void)
 {
 #ifdef HAVE_CURL
 	opkg_curl_cleanup();
@@ -150,16 +145,14 @@ opkg_free(void)
 	opkg_conf_deinit();
 }
 
-int
-opkg_re_read_config_files(void)
+int opkg_re_read_config_files(void)
 {
 	opkg_free();
 	*conf = saved_conf;
 	return opkg_new();
 }
 
-void
-opkg_get_option(char *option, void **value)
+void opkg_get_option(char *option, void **value)
 {
 	int i = 0;
 	extern opkg_option_t options[];
@@ -177,22 +170,21 @@ opkg_get_option(char *option, void **value)
 	/* get the option */
 	switch (options[i].type) {
 	case OPKG_OPT_TYPE_BOOL:
-		*((int *) value) = *((int *) options[i].value);
+		*((int *)value) = *((int *)options[i].value);
 		return;
 
 	case OPKG_OPT_TYPE_INT:
-		*((int *) value) = *((int *) options[i].value);
+		*((int *)value) = *((int *)options[i].value);
 		return;
 
 	case OPKG_OPT_TYPE_STRING:
-		*((char **) value) = xstrdup(options[i].value);
+		*((char **)value) = xstrdup(options[i].value);
 		return;
 	}
 
 }
 
-void
-opkg_set_option(char *option, void *value)
+void opkg_set_option(char *option, void *value)
 {
 	int i = 0, found = 0;
 	extern opkg_option_t options[];
@@ -219,18 +211,18 @@ opkg_set_option(char *option, void *value)
 	/* set the option */
 	switch (options[i].type) {
 	case OPKG_OPT_TYPE_BOOL:
-		if (*((int *) value) == 0)
-			*((int *) options[i].value) = 0;
+		if (*((int *)value) == 0)
+			*((int *)options[i].value) = 0;
 		else
-			*((int *) options[i].value) = 1;
+			*((int *)options[i].value) = 1;
 		return;
 
 	case OPKG_OPT_TYPE_INT:
-		*((int *) options[i].value) = *((int *) value);
+		*((int *)options[i].value) = *((int *)value);
 		return;
 
 	case OPKG_OPT_TYPE_STRING:
-		*((char **) options[i].value) = xstrdup(value);
+		*((char **)options[i].value) = xstrdup(value);
 		return;
 	}
 
@@ -243,8 +235,8 @@ opkg_set_option(char *option, void *value)
  */
 int
 opkg_install_package(const char *package_name,
-		opkg_progress_callback_t progress_callback,
-		void *user_data)
+		     opkg_progress_callback_t progress_callback,
+		     void *user_data)
 {
 	int err;
 	char *stripped_filename;
@@ -259,12 +251,11 @@ opkg_install_package(const char *package_name,
 	/* ... */
 	pkg_info_preinstall_check();
 
-
 	/* check to ensure package is not already installed */
 	old = pkg_hash_fetch_installed_by_name(package_name);
 	if (old) {
 		opkg_msg(ERROR, "Package %s is already installed\n",
-				package_name);
+			 package_name);
 		return -1;
 	}
 
@@ -285,11 +276,11 @@ opkg_install_package(const char *package_name,
 	deps = pkg_vec_alloc();
 	/* this function does not return the original package, so we insert it later */
 	ndepends = pkg_hash_fetch_unsatisfied_dependencies(new, deps,
-			&unresolved);
+							   &unresolved);
 	if (unresolved) {
 		char **tmp = unresolved;
 		opkg_msg(ERROR, "Couldn't satisfy the following dependencies"
-			       " for %s:\n", package_name);
+			 " for %s:\n", package_name);
 		while (*tmp) {
 			opkg_msg(ERROR, "\t%s", *tmp);
 			free(*tmp);
@@ -319,7 +310,7 @@ opkg_install_package(const char *package_name,
 
 		if (pkg->src == NULL) {
 			opkg_msg(ERROR, "Package %s not available from any "
-					"configured src\n", package_name);
+				 "configured src\n", package_name);
 			return -1;
 		}
 
@@ -361,7 +352,6 @@ opkg_install_package(const char *package_name,
 	}
 	pkg_vec_free(all);
 
-
 	/* 75% of "install" progress is for downloading */
 	pdata.pkg = new;
 	pdata.action = OPKG_INSTALL;
@@ -392,7 +382,7 @@ opkg_install_package(const char *package_name,
 
 int
 opkg_remove_package(const char *package_name,
-		opkg_progress_callback_t progress_callback, void *user_data)
+		    opkg_progress_callback_t progress_callback, void *user_data)
 {
 	int err;
 	pkg_t *pkg = NULL;
@@ -416,11 +406,11 @@ opkg_remove_package(const char *package_name,
 
 	if (conf->restrict_to_default_dest) {
 		pkg_to_remove = pkg_hash_fetch_installed_by_name_dest(pkg->name,
-						      conf->default_dest);
+								      conf->
+								      default_dest);
 	} else {
 		pkg_to_remove = pkg_hash_fetch_installed_by_name(pkg->name);
 	}
-
 
 	progress(pdata, 75);
 
@@ -430,15 +420,14 @@ opkg_remove_package(const char *package_name,
 	opkg_conf_write_status_files();
 	pkg_write_changed_filelists();
 
-
 	progress(pdata, 100);
 	return (err) ? -1 : 0;
 }
 
 int
 opkg_upgrade_package(const char *package_name,
-		opkg_progress_callback_t progress_callback,
-		void *user_data)
+		     opkg_progress_callback_t progress_callback,
+		     void *user_data)
 {
 	int err;
 	pkg_t *pkg;
@@ -529,7 +518,7 @@ opkg_upgrade_all(opkg_progress_callback_t progress_callback, void *user_data)
 
 int
 opkg_update_package_lists(opkg_progress_callback_t progress_callback,
-			void *user_data)
+			  void *user_data)
 {
 	char *tmp;
 	int err, result = 0;
@@ -544,7 +533,7 @@ opkg_update_package_lists(opkg_progress_callback_t progress_callback,
 	progress(pdata, 0);
 
 	sprintf_alloc(&lists_dir, "%s", (conf->restrict_to_default_dest)
-		? conf->default_dest->lists_dir : conf->lists_dir);
+		      ? conf->default_dest->lists_dir : conf->lists_dir);
 
 	if (!file_is_dir(lists_dir)) {
 		if (file_exists(lists_dir)) {
@@ -556,7 +545,7 @@ opkg_update_package_lists(opkg_progress_callback_t progress_callback,
 		err = file_mkdir_hier(lists_dir, 0755);
 		if (err) {
 			opkg_msg(ERROR, "Couldn't create lists_dir %s\n",
-					lists_dir);
+				 lists_dir);
 			free(lists_dir);
 			return 1;
 		}
@@ -565,7 +554,7 @@ opkg_update_package_lists(opkg_progress_callback_t progress_callback,
 	sprintf_alloc(&tmp, "%s/update-XXXXXX", conf->tmp_dir);
 	if (mkdtemp(tmp) == NULL) {
 		opkg_perror(ERROR, "Coundn't create temporary directory %s",
-				tmp);
+			    tmp);
 		free(lists_dir);
 		free(tmp);
 		return 1;
@@ -624,15 +613,15 @@ opkg_update_package_lists(opkg_progress_callback_t progress_callback,
 			} else {
 				int err;
 				err = opkg_verify_file(list_file_name,
-						     sig_file_name);
+						       sig_file_name);
 				if (err == 0) {
 					opkg_msg(INFO, "Signature check "
-							"passed for %s",
-							list_file_name);
+						 "passed for %s",
+						 list_file_name);
 				} else {
 					opkg_msg(ERROR, "Signature check "
-							"failed for %s",
-							list_file_name);
+						 "failed for %s",
+						 list_file_name);
 				}
 			}
 			free(sig_file_name);
@@ -640,8 +629,8 @@ opkg_update_package_lists(opkg_progress_callback_t progress_callback,
 		}
 #else
 		opkg_msg(INFO, "Signature check skipped for %s as GPG support"
-				" has not been enabled in this build\n",
-				list_file_name);
+			 " has not been enabled in this build\n",
+			 list_file_name);
 #endif
 		free(list_file_name);
 
@@ -659,8 +648,7 @@ opkg_update_package_lists(opkg_progress_callback_t progress_callback,
 	return result;
 }
 
-static int
-pkg_compare_names_and_version(const void *a0, const void *b0)
+static int pkg_compare_names_and_version(const void *a0, const void *b0)
 {
 	const pkg_t *a = *(const pkg_t **)a0;
 	const pkg_t *b = *(const pkg_t **)b0;
@@ -674,8 +662,7 @@ pkg_compare_names_and_version(const void *a0, const void *b0)
 	return ret;
 }
 
-int
-opkg_list_packages(opkg_package_callback_t callback, void *user_data)
+int opkg_list_packages(opkg_package_callback_t callback, void *user_data)
 {
 	pkg_vec_t *all;
 	int i;
@@ -716,7 +703,9 @@ opkg_list_upgradable_packages(opkg_package_callback_t callback, void *user_data)
 	for (node = active_list_next(head, head); node;
 	     node = active_list_next(head, node)) {
 		old = list_entry(node, pkg_t, list);
-		new = pkg_hash_fetch_best_installation_candidate_by_name(old->name);
+		new =
+		    pkg_hash_fetch_best_installation_candidate_by_name(old->
+								       name);
 		if (new == NULL)
 			continue;
 		callback(new, user_data);
@@ -725,9 +714,8 @@ opkg_list_upgradable_packages(opkg_package_callback_t callback, void *user_data)
 	return 0;
 }
 
-pkg_t *
-opkg_find_package(const char *name, const char *ver, const char *arch,
-		const char *repo)
+pkg_t *opkg_find_package(const char *name, const char *ver, const char *arch,
+			 const char *repo)
 {
 	int pkg_found = 0;
 	pkg_t *pkg = NULL;
@@ -780,8 +768,7 @@ opkg_find_package(const char *name, const char *ver, const char *arch,
  * @brief Check the accessibility of repositories.
  * @return return how many repositories cannot access. 0 means all okay.
  */
-int
-opkg_repository_accessibility_check(void)
+int opkg_repository_accessibility_check(void)
 {
 	pkg_src_list_elt_t *iter;
 	str_list_elt_t *iter1;
@@ -795,11 +782,12 @@ opkg_repository_accessibility_check(void)
 	src = str_list_alloc();
 
 	list_for_each_entry(iter, &conf->pkg_src_list.head, node) {
-		host = strstr(((pkg_src_t *)iter->data)->value, "://") + 3;
+		host = strstr(((pkg_src_t *) iter->data)->value, "://") + 3;
 		end = index(host, '/');
 		if (strstr(((pkg_src_t *) iter->data)->value, "://") && end)
 			stmp = xstrndup(((pkg_src_t *) iter->data)->value,
-				     end - ((pkg_src_t *) iter->data)->value);
+					end -
+					((pkg_src_t *) iter->data)->value);
 		else
 			stmp = xstrdup(((pkg_src_t *) iter->data)->value);
 

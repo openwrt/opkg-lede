@@ -24,15 +24,15 @@
 #include <errno.h>
 #include "libbb.h"
 
-extern void archive_xread_all(int fd , char *buf, size_t count)
+extern void archive_xread_all(int fd, char *buf, size_t count)
 {
-        ssize_t size;
+	ssize_t size;
 
-        size = full_read(fd, buf, count);
-        if (size != count) {
-                perror_msg_and_die("Short read");
-        }
-        return;
+	size = full_read(fd, buf, count);
+	if (size != count) {
+		perror_msg_and_die("Short read");
+	}
+	return;
 }
 
 /*
@@ -43,41 +43,37 @@ extern void archive_xread_all(int fd , char *buf, size_t count)
  */
 ssize_t full_read(int fd, char *buf, int len)
 {
-        ssize_t cc;
-        ssize_t total;
+	ssize_t cc;
+	ssize_t total;
 
-        total = 0;
+	total = 0;
 
-        while (len > 0) {
-                cc = safe_read(fd, buf, len);
+	while (len > 0) {
+		cc = safe_read(fd, buf, len);
 
-                if (cc < 0)
-                        return cc;      /* read() returns -1 on failure. */
+		if (cc < 0)
+			return cc;	/* read() returns -1 on failure. */
 
-                if (cc == 0)
-                        break;
+		if (cc == 0)
+			break;
 
-                buf = ((char *)buf) + cc;
-                total += cc;
-                len -= cc;
-        }
+		buf = ((char *)buf) + cc;
+		total += cc;
+		len -= cc;
+	}
 
-        return total;
+	return total;
 }
-
 
 ssize_t safe_read(int fd, void *buf, size_t count)
 {
-        ssize_t n;
+	ssize_t n;
 
-        do {
-                n = read(fd, buf, count);
-        } while (n < 0 && errno == EINTR);
+	do {
+		n = read(fd, buf, count);
+	} while (n < 0 && errno == EINTR);
 
-        return n;
+	return n;
 }
 
-
-
 /* END CODE */
-

@@ -24,16 +24,14 @@
 #include "parse_util.h"
 #include "pkg_parse.h"
 
-int
-is_field(const char *type, const char *line)
+int is_field(const char *type, const char *line)
 {
 	if (!strncmp(line, type, strlen(type)))
 		return 1;
 	return 0;
 }
 
-char *
-parse_simple(const char *type, const char *line)
+char *parse_simple(const char *type, const char *line)
 {
 	char *field = trim_xstrdup(line + strlen(type) + 1);
 	if (strlen(field) == 0) {
@@ -46,8 +44,8 @@ parse_simple(const char *type, const char *line)
 /*
  * Parse a comma separated string into an array.
  */
-char **
-parse_list(const char *raw, unsigned int *count, const char sep, int skip_field)
+char **parse_list(const char *raw, unsigned int *count, const char sep,
+		  int skip_field)
 {
 	char **depends = NULL;
 	const char *start, *end;
@@ -55,9 +53,9 @@ parse_list(const char *raw, unsigned int *count, const char sep, int skip_field)
 
 	/* skip past the "Field:" marker */
 	if (!skip_field) {
-	while (*raw && *raw != ':')
+		while (*raw && *raw != ':')
+			raw++;
 		raw++;
-	raw++;
 	}
 
 	if (line_is_blank(raw)) {
@@ -67,7 +65,7 @@ parse_list(const char *raw, unsigned int *count, const char sep, int skip_field)
 
 	while (*raw) {
 		depends = xrealloc(depends, sizeof(char *) * (line_count + 1));
-	
+
 		while (isspace(*raw))
 			raw++;
 
@@ -82,11 +80,11 @@ parse_list(const char *raw, unsigned int *count, const char sep, int skip_field)
 		if (sep == ' ')
 			end++;
 
-		depends[line_count] = xstrndup(start, end-start);
+		depends[line_count] = xstrndup(start, end - start);
 
-        	line_count++;
+		line_count++;
 		if (*raw == sep)
-		    raw++;
+			raw++;
 	}
 
 	*count = line_count;
@@ -94,8 +92,8 @@ parse_list(const char *raw, unsigned int *count, const char sep, int skip_field)
 }
 
 int
-parse_from_stream_nomalloc(parse_line_t parse_line, void *item, FILE *fp, uint mask,
-						char **buf0, size_t buf0len)
+parse_from_stream_nomalloc(parse_line_t parse_line, void *item, FILE * fp,
+			   uint mask, char **buf0, size_t buf0len)
 {
 	int ret, lineno;
 	char *buf, *nl;
@@ -113,9 +111,9 @@ parse_from_stream_nomalloc(parse_line_t parse_line, void *item, FILE *fp, uint m
 			if (ferror(fp)) {
 				opkg_perror(ERROR, "fgets");
 				ret = -1;
-			} else if (strlen(*buf0) == buf0len-1) {
+			} else if (strlen(*buf0) == buf0len - 1) {
 				opkg_msg(ERROR, "Missing new line character"
-						" at end of file!\n");
+					 " at end of file!\n");
 				parse_line(item, *buf0, mask);
 			}
 			break;
@@ -123,21 +121,20 @@ parse_from_stream_nomalloc(parse_line_t parse_line, void *item, FILE *fp, uint m
 
 		nl = strchr(buf, '\n');
 		if (nl == NULL) {
-			if (strlen(buf) < buflen-1) {
+			if (strlen(buf) < buflen - 1) {
 				/*
 				 * Line could be exactly buflen-1 long and
 				 * missing a newline, but we won't know until
 				 * fgets fails to read more data.
 				 */
 				opkg_msg(ERROR, "Missing new line character"
-						" at end of file!\n");
+					 " at end of file!\n");
 				parse_line(item, *buf0, mask);
 				break;
 			}
 			if (buf0len >= EXCESSIVE_LINE_LEN) {
 				opkg_msg(ERROR, "Excessively long line at "
-					"%d. Corrupt file?\n",
-					lineno);
+					 "%d. Corrupt file?\n", lineno);
 				ret = -1;
 				break;
 			}
@@ -150,10 +147,10 @@ parse_from_stream_nomalloc(parse_line_t parse_line, void *item, FILE *fp, uint m
 			 * |---------------------|---------------------|
 			 * buf0                   buf
 			 */
-			buflen = buf0len +1;
+			buflen = buf0len + 1;
 			buf0len *= 2;
 			*buf0 = xrealloc(*buf0, buf0len);
-			buf = *buf0 + buflen -2;
+			buf = *buf0 + buflen - 2;
 
 			continue;
 		}
@@ -172,4 +169,3 @@ parse_from_stream_nomalloc(parse_line_t parse_line, void *item, FILE *fp, uint m
 
 	return ret;
 }
-

@@ -18,19 +18,18 @@
 #ifndef OPKG_CMD_H
 #define OPKG_CMD_H
 
-typedef int (*opkg_cmd_fun_t)(int argc, const char **argv);
+typedef int (*opkg_cmd_fun_t) (int argc, const char **argv);
 
-struct opkg_cmd
-{
-    const char *name;
-    int requires_args;
-    opkg_cmd_fun_t fun;
-    unsigned int pfm; /* package field mask */
+struct opkg_cmd {
+	const char *name;
+	int requires_args;
+	opkg_cmd_fun_t fun;
+	unsigned int pfm;	/* package field mask */
 };
 typedef struct opkg_cmd opkg_cmd_t;
 
 opkg_cmd_t *opkg_cmd_find(const char *name);
-int opkg_cmd_exec(opkg_cmd_t *cmd, int argc, const char **argv);
+int opkg_cmd_exec(opkg_cmd_t * cmd, int argc, const char **argv);
 
 extern int opkg_state_changed;
 #endif

@@ -25,7 +25,6 @@
 #include <unistd.h>
 #include "libbb.h"
 
-
 extern void *xmalloc(size_t size)
 {
 	void *ptr = malloc(size);
@@ -50,13 +49,14 @@ extern void *xcalloc(size_t nmemb, size_t size)
 	return ptr;
 }
 
-extern char * xstrdup (const char *s) {
+extern char *xstrdup(const char *s)
+{
 	char *t;
 
 	if (s == NULL)
 		return NULL;
 
-	t = strdup (s);
+	t = strdup(s);
 
 	if (t == NULL)
 		perror_msg_and_die("strdup");
@@ -64,7 +64,8 @@ extern char * xstrdup (const char *s) {
 	return t;
 }
 
-extern char * xstrndup (const char *s, int n) {
+extern char *xstrndup(const char *s, int n)
+{
 	char *t;
 
 	if (s == NULL)
@@ -72,7 +73,7 @@ extern char * xstrndup (const char *s, int n) {
 
 	t = xmalloc(++n);
 
-	return safe_strncpy(t,s,n);
+	return safe_strncpy(t, s, n);
 }
 
 FILE *xfopen(const char *path, const char *mode)

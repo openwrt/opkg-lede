@@ -31,8 +31,7 @@
 
 static int gz_use_vfork;
 
-FILE *
-gz_open(FILE *compressed_file, int *pid)
+FILE *gz_open(FILE * compressed_file, int *pid)
 {
 	int unzip_pipe[2];
 	off_t floc;
@@ -51,9 +50,9 @@ gz_open(FILE *compressed_file, int *pid)
 		setenv("GZIP", "--quiet", 0);
 	}
 
-	if (pipe(unzip_pipe)!=0) {
+	if (pipe(unzip_pipe) != 0) {
 		perror_msg("pipe");
-		return(NULL);
+		return (NULL);
 	}
 
 	/* If we don't flush, we end up with two copies of anything pending,
@@ -67,18 +66,18 @@ gz_open(FILE *compressed_file, int *pid)
 		*pid = fork();
 	}
 
-	if (*pid<0) {
+	if (*pid < 0) {
 		perror_msg("fork");
-		return(NULL);
+		return (NULL);
 	}
 
-	if (*pid==0) {
+	if (*pid == 0) {
 		/* child process */
 		close(unzip_pipe[0]);
 		if (gz_use_vfork) {
 			dup2(unzip_pipe[1], 1);
 			dup2(cfile, 0);
-			execlp("gunzip","gunzip",NULL);
+			execlp("gunzip", "gunzip", NULL);
 			/* If we get here, we had a failure */
 			_exit(EXIT_FAILURE);
 		} else {
@@ -94,11 +93,10 @@ gz_open(FILE *compressed_file, int *pid)
 		close(cfile);
 	}
 	close(unzip_pipe[1]);
-	return(fdopen(unzip_pipe[0], "r"));
+	return (fdopen(unzip_pipe[0], "r"));
 }
 
-int
-gz_close(int gunzip_pid)
+int gz_close(int gunzip_pid)
 {
 	int status;
 	int ret;
@@ -115,7 +113,6 @@ gz_close(int gunzip_pid)
 		}
 	}
 
-
 	if (waitpid(gunzip_pid, &status, 0) == -1) {
 		perror_msg("waitpid");
 		return -1;
@@ -128,20 +125,20 @@ gz_close(int gunzip_pid)
 
 	if (WIFSIGNALED(status)) {
 		error_msg("Unzip process killed by signal %d.\n",
-			WTERMSIG(status));
+			  WTERMSIG(status));
 		return -1;
 	}
 
 	if (!WIFEXITED(status)) {
 		/* shouldn't happen */
-		error_msg("Your system is broken: got status %d from waitpid.\n",
-				status);
+		error_msg
+		    ("Your system is broken: got status %d from waitpid.\n",
+		     status);
 		return -1;
 	}
 
 	if ((ret = WEXITSTATUS(status))) {
-		error_msg("Unzip process failed with return code %d.\n",
-				ret);
+		error_msg("Unzip process failed with return code %d.\n", ret);
 		return -1;
 	}
 

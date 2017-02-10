@@ -29,15 +29,13 @@
 
 #include "parse_util.h"
 
-static void
-parse_status(pkg_t *pkg, const char *sstr)
+static void parse_status(pkg_t * pkg, const char *sstr)
 {
 	char sw_str[64], sf_str[64], ss_str[64];
 
-	if (sscanf(sstr, "Status: %63s %63s %63s",
-				sw_str, sf_str, ss_str) != 3) {
+	if (sscanf(sstr, "Status: %63s %63s %63s", sw_str, sf_str, ss_str) != 3) {
 		opkg_msg(ERROR, "Failed to parse Status line for %s\n",
-				pkg->name);
+			 pkg->name);
 		return;
 	}
 
@@ -46,22 +44,20 @@ parse_status(pkg_t *pkg, const char *sstr)
 	pkg->state_status = pkg_state_status_from_str(ss_str);
 }
 
-static void
-parse_conffiles(pkg_t *pkg, const char *cstr)
+static void parse_conffiles(pkg_t * pkg, const char *cstr)
 {
 	char file_name[1024], md5sum[85];
 
 	if (sscanf(cstr, "%1023s %84s", file_name, md5sum) != 2) {
 		opkg_msg(ERROR, "Failed to parse Conffiles line for %s\n",
-				pkg->name);
+			 pkg->name);
 		return;
 	}
 
 	conffile_list_append(&pkg->conffiles, file_name, md5sum);
 }
 
-int
-parse_version(pkg_t *pkg, const char *vstr)
+int parse_version(pkg_t * pkg, const char *vstr)
 {
 	char *colon;
 
@@ -80,11 +76,11 @@ parse_version(pkg_t *pkg, const char *vstr)
 		}
 		vstr = ++colon;
 	} else {
-		pkg->epoch= 0;
+		pkg->epoch = 0;
 	}
 
 	pkg->version = xstrdup(vstr);
-	pkg->revision = strrchr(pkg->version,'-');
+	pkg->revision = strrchr(pkg->version, '-');
 
 	if (pkg->revision)
 		*pkg->revision++ = '\0';
@@ -92,21 +88,19 @@ parse_version(pkg_t *pkg, const char *vstr)
 	return 0;
 }
 
-static int
-get_arch_priority(const char *arch)
+static int get_arch_priority(const char *arch)
 {
 	nv_pair_list_elt_t *l;
 
-	list_for_each_entry(l , &conf->arch_list.head, node) {
-		nv_pair_t *nv = (nv_pair_t *)l->data;
+	list_for_each_entry(l, &conf->arch_list.head, node) {
+		nv_pair_t *nv = (nv_pair_t *) l->data;
 		if (strcmp(nv->name, arch) == 0)
 			return strtol(nv->value, NULL, 0);
 	}
 	return 0;
 }
 
-int
-pkg_parse_line(void *ptr, const char *line, uint mask)
+int pkg_parse_line(void *ptr, const char *line, uint mask)
 {
 	pkg_t *pkg = (pkg_t *) ptr;
 
@@ -122,13 +116,15 @@ pkg_parse_line(void *ptr, const char *line, uint mask)
 
 	switch (*line) {
 	case 'A':
-		if ((mask & PFM_ARCHITECTURE ) && is_field("Architecture", line)) {
+		if ((mask & PFM_ARCHITECTURE) && is_field("Architecture", line)) {
 			pkg->architecture = parse_simple("Architecture", line);
-			pkg->arch_priority = get_arch_priority(pkg->architecture);
-		} else if ((mask & PFM_AUTO_INSTALLED) && is_field("Auto-Installed", line)) {
+			pkg->arch_priority =
+			    get_arch_priority(pkg->architecture);
+		} else if ((mask & PFM_AUTO_INSTALLED)
+			   && is_field("Auto-Installed", line)) {
 			char *tmp = parse_simple("Auto-Installed", line);
 			if (strcmp(tmp, "yes") == 0)
-			    pkg->auto_installed = 1;
+				pkg->auto_installed = 1;
 			free(tmp);
 		}
 		break;
@@ -138,9 +134,10 @@ pkg_parse_line(void *ptr, const char *line, uint mask)
 			reading_conffiles = 1;
 			reading_description = 0;
 			goto dont_reset_flags;
-	    	}
-		else if ((mask & PFM_CONFLICTS) && is_field("Conflicts", line))
-			pkg->conflicts_str = parse_list(line, &pkg->conflicts_count, ',', 0);
+		} else if ((mask & PFM_CONFLICTS)
+			   && is_field("Conflicts", line))
+			pkg->conflicts_str =
+			    parse_list(line, &pkg->conflicts_count, ',', 0);
 		break;
 
 	case 'D':
@@ -150,11 +147,12 @@ pkg_parse_line(void *ptr, const char *line, uint mask)
 			reading_description = 1;
 			goto dont_reset_flags;
 		} else if ((mask & PFM_DEPENDS) && is_field("Depends", line))
-			pkg->depends_str = parse_list(line, &pkg->depends_count, ',', 0);
+			pkg->depends_str =
+			    parse_list(line, &pkg->depends_count, ',', 0);
 		break;
 
 	case 'E':
-		if((mask & PFM_ESSENTIAL) && is_field("Essential", line)) {
+		if ((mask & PFM_ESSENTIAL) && is_field("Essential", line)) {
 			char *tmp = parse_simple("Essential", line);
 			if (strcmp(tmp, "yes") == 0)
 				pkg->essential = 1;
@@ -163,30 +161,33 @@ pkg_parse_line(void *ptr, const char *line, uint mask)
 		break;
 
 	case 'F':
-		if((mask & PFM_FILENAME) && is_field("Filename", line))
+		if ((mask & PFM_FILENAME) && is_field("Filename", line))
 			pkg->filename = parse_simple("Filename", line);
 		break;
 
 	case 'I':
-		if ((mask & PFM_INSTALLED_SIZE) && is_field("Installed-Size", line)) {
+		if ((mask & PFM_INSTALLED_SIZE)
+		    && is_field("Installed-Size", line)) {
 			char *tmp = parse_simple("Installed-Size", line);
 			pkg->installed_size = strtoul(tmp, NULL, 0);
-			free (tmp);
-		} else if ((mask & PFM_INSTALLED_TIME) && is_field("Installed-Time", line)) {
+			free(tmp);
+		} else if ((mask & PFM_INSTALLED_TIME)
+			   && is_field("Installed-Time", line)) {
 			char *tmp = parse_simple("Installed-Time", line);
 			pkg->installed_time = strtoul(tmp, NULL, 0);
-			free (tmp);
+			free(tmp);
 		}
 		break;
 
 	case 'M':
 		if ((mask & PFM_MD5SUM) && is_field("MD5sum:", line))
 			pkg->md5sum = parse_simple("MD5sum", line);
-			/* The old opkg wrote out status files with the wrong
-			* case for MD5sum, let's parse it either way */
-		else if ((mask & PFM_MD5SUM) && is_field("MD5Sum:", line)) 
+		/* The old opkg wrote out status files with the wrong
+		 * case for MD5sum, let's parse it either way */
+		else if ((mask & PFM_MD5SUM) && is_field("MD5Sum:", line))
 			pkg->md5sum = parse_simple("MD5Sum", line);
-		else if((mask & PFM_MAINTAINER) && is_field("Maintainer", line))
+		else if ((mask & PFM_MAINTAINER)
+			 && is_field("Maintainer", line))
 			pkg->maintainer = parse_simple("Maintainer", line);
 		break;
 
@@ -196,16 +197,21 @@ pkg_parse_line(void *ptr, const char *line, uint mask)
 		else if ((mask & PFM_PRIORITY) && is_field("Priority", line))
 			pkg->priority = parse_simple("Priority", line);
 		else if ((mask & PFM_PROVIDES) && is_field("Provides", line))
-			pkg->provides_str = parse_list(line, &pkg->provides_count, ',', 0);
-		else if ((mask & PFM_PRE_DEPENDS) && is_field("Pre-Depends", line))
-			pkg->pre_depends_str = parse_list(line, &pkg->pre_depends_count, ',', 0);
+			pkg->provides_str =
+			    parse_list(line, &pkg->provides_count, ',', 0);
+		else if ((mask & PFM_PRE_DEPENDS)
+			 && is_field("Pre-Depends", line))
+			pkg->pre_depends_str =
+			    parse_list(line, &pkg->pre_depends_count, ',', 0);
 		break;
 
 	case 'R':
 		if ((mask & PFM_RECOMMENDS) && is_field("Recommends", line))
-			pkg->recommends_str = parse_list(line, &pkg->recommends_count, ',', 0);
+			pkg->recommends_str =
+			    parse_list(line, &pkg->recommends_count, ',', 0);
 		else if ((mask & PFM_REPLACES) && is_field("Replaces", line))
-			pkg->replaces_str = parse_list(line, &pkg->replaces_count, ',', 0);
+			pkg->replaces_str =
+			    parse_list(line, &pkg->replaces_count, ',', 0);
 
 		break;
 
@@ -219,13 +225,14 @@ pkg_parse_line(void *ptr, const char *line, uint mask)
 		else if ((mask & PFM_SIZE) && is_field("Size", line)) {
 			char *tmp = parse_simple("Size", line);
 			pkg->size = strtoul(tmp, NULL, 0);
-			free (tmp);
+			free(tmp);
 		} else if ((mask & PFM_SOURCE) && is_field("Source", line))
 			pkg->source = parse_simple("Source", line);
 		else if ((mask & PFM_STATUS) && is_field("Status", line))
 			parse_status(pkg, line);
 		else if ((mask & PFM_SUGGESTS) && is_field("Suggests", line))
-			pkg->suggests_str = parse_list(line, &pkg->suggests_count, ',', 0);
+			pkg->suggests_str =
+			    parse_list(line, &pkg->suggests_count, ',', 0);
 		break;
 
 	case 'T':
@@ -242,13 +249,16 @@ pkg_parse_line(void *ptr, const char *line, uint mask)
 		if ((mask & PFM_DESCRIPTION) && reading_description) {
 			if (isatty(1)) {
 				pkg->description = xrealloc(pkg->description,
-							strlen(pkg->description)
-							+ 1 + strlen(line) + 1);
+							    strlen(pkg->
+								   description)
+							    + 1 + strlen(line) +
+							    1);
 				strcat(pkg->description, "\n");
 			} else {
 				pkg->description = xrealloc(pkg->description,
-							strlen(pkg->description)
-							+ 1 + strlen(line));
+							    strlen(pkg->
+								   description)
+							    + 1 + strlen(line));
 			}
 			strcat(pkg->description, (line));
 			goto dont_reset_flags;
@@ -260,7 +270,7 @@ pkg_parse_line(void *ptr, const char *line, uint mask)
 		/* FALLTHROUGH */
 	default:
 		/* For package lists, signifies end of package. */
-		if(line_is_blank(line)) {
+		if (line_is_blank(line)) {
 			ret = 1;
 			break;
 		}
@@ -274,15 +284,16 @@ dont_reset_flags:
 	return ret;
 }
 
-int
-pkg_parse_from_stream(pkg_t *pkg, FILE *fp, uint mask)
+int pkg_parse_from_stream(pkg_t * pkg, FILE * fp, uint mask)
 {
 	int ret;
 	char *buf;
 	const size_t len = 4096;
 
 	buf = xmalloc(len);
-	ret = parse_from_stream_nomalloc(pkg_parse_line, pkg, fp, mask, &buf, len);
+	ret =
+	    parse_from_stream_nomalloc(pkg_parse_line, pkg, fp, mask, &buf,
+				       len);
 	free(buf);
 
 	if (pkg->name == NULL) {

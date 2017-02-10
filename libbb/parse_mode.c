@@ -25,25 +25,24 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-
 /* This function parses the sort of string you might pass
  * to chmod (i.e., [ugoa]{+|-|=}[rwxst] ) and returns the
  * correct mode described by the string. */
 extern int parse_mode(const char *s, mode_t * theMode)
 {
 	static const mode_t group_set[] = {
-		S_ISUID | S_IRWXU,		/* u */
-		S_ISGID | S_IRWXG,		/* g */
-		S_IRWXO,				/* o */
-		S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO /* a */
+		S_ISUID | S_IRWXU,	/* u */
+		S_ISGID | S_IRWXG,	/* g */
+		S_IRWXO,	/* o */
+		S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO	/* a */
 	};
 
 	static const mode_t mode_set[] = {
-		S_IRUSR | S_IRGRP | S_IROTH, /* r */
-		S_IWUSR | S_IWGRP | S_IWOTH, /* w */
-		S_IXUSR | S_IXGRP | S_IXOTH, /* x */
-		S_ISUID | S_ISGID,		/* s */
-		S_ISVTX					/* t */
+		S_IRUSR | S_IRGRP | S_IROTH,	/* r */
+		S_IWUSR | S_IWGRP | S_IWOTH,	/* w */
+		S_IXUSR | S_IXGRP | S_IXOTH,	/* x */
+		S_ISUID | S_ISGID,	/* s */
+		S_ISVTX		/* t */
 	};
 
 	static const char group_chars[] = "ugoa";
@@ -52,69 +51,69 @@ extern int parse_mode(const char *s, mode_t * theMode)
 	const char *p;
 
 	mode_t andMode =
-		S_ISVTX | S_ISUID | S_ISGID | S_IRWXU | S_IRWXG | S_IRWXO;
+	    S_ISVTX | S_ISUID | S_ISGID | S_IRWXU | S_IRWXG | S_IRWXO;
 	mode_t orMode = 0;
 	mode_t mode;
 	mode_t groups;
 	char type;
 	char c;
 
-	if (s==NULL) {
+	if (s == NULL) {
 		return (FALSE);
 	}
 
 	do {
 		mode = 0;
 		groups = 0;
-	NEXT_GROUP:
+NEXT_GROUP:
 		if ((c = *s++) == '\0') {
 			return -1;
 		}
-		for (p=group_chars ; *p ; p++) {
+		for (p = group_chars; *p; p++) {
 			if (*p == c) {
-				groups |= group_set[(int)(p-group_chars)];
+				groups |= group_set[(int)(p - group_chars)];
 				goto NEXT_GROUP;
 			}
 		}
 		switch (c) {
-			case '=':
-			case '+':
-			case '-':
-				type = c;
-				if (groups == 0) { /* The default is "all" */
-					groups |= S_ISUID | S_ISGID | S_ISVTX
-							| S_IRWXU | S_IRWXG | S_IRWXO;
-				}
-				break;
-			default:
-				if ((c < '0') || (c > '7') || (mode | groups)) {
-					return (FALSE);
-				} else {
-					*theMode = strtol(--s, NULL, 8);
-					return (TRUE);
-				}
+		case '=':
+		case '+':
+		case '-':
+			type = c;
+			if (groups == 0) {	/* The default is "all" */
+				groups |= S_ISUID | S_ISGID | S_ISVTX
+				    | S_IRWXU | S_IRWXG | S_IRWXO;
+			}
+			break;
+		default:
+			if ((c < '0') || (c > '7') || (mode | groups)) {
+				return (FALSE);
+			} else {
+				*theMode = strtol(--s, NULL, 8);
+				return (TRUE);
+			}
 		}
 
-	NEXT_MODE:
+NEXT_MODE:
 		if (((c = *s++) != '\0') && (c != ',')) {
-			for (p=mode_chars ; *p ; p++) {
+			for (p = mode_chars; *p; p++) {
 				if (*p == c) {
-					mode |= mode_set[(int)(p-mode_chars)];
+					mode |= mode_set[(int)(p - mode_chars)];
 					goto NEXT_MODE;
 				}
 			}
-			break;				/* We're done so break out of loop.*/
+			break;	/* We're done so break out of loop. */
 		}
 		switch (type) {
-			case '=':
-				andMode &= ~(groups); /* Now fall through. */
-			case '+':
-				orMode |= mode & groups;
-				break;
-			case '-':
-				andMode &= ~(mode & groups);
-				orMode &= ~(mode & groups);
-				break;
+		case '=':
+			andMode &= ~(groups);	/* Now fall through. */
+		case '+':
+			orMode |= mode & groups;
+			break;
+		case '-':
+			andMode &= ~(mode & groups);
+			orMode &= ~(mode & groups);
+			break;
 		}
 	} while (c == ',');
 

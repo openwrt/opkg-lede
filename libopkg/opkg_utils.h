@@ -18,7 +18,7 @@
 #ifndef OPKG_UTILS_H
 #define OPKG_UTILS_H
 
-unsigned long get_available_kbytes(char * filesystem);
+unsigned long get_available_kbytes(char *filesystem);
 char *trim_xstrdup(const char *line);
 int line_is_blank(const char *line);
 

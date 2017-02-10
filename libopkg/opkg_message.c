@@ -27,12 +27,11 @@ struct errlist {
 
 static struct errlist *error_list_head, *error_list_tail;
 
-static void
-push_error_list(char *msg)
+static void push_error_list(char *msg)
 {
 	struct errlist *e;
 
-	e = xcalloc(1,  sizeof(struct errlist));
+	e = xcalloc(1, sizeof(struct errlist));
 	e->errmsg = xstrdup(msg);
 	e->next = NULL;
 
@@ -44,8 +43,7 @@ push_error_list(char *msg)
 	}
 }
 
-void
-free_error_list(void)
+void free_error_list(void)
 {
 	struct errlist *err, *err_tmp;
 
@@ -58,8 +56,7 @@ free_error_list(void)
 	}
 }
 
-void
-print_error_list(void)
+void print_error_list(void)
 {
 	struct errlist *err = error_list_head;
 
@@ -73,8 +70,7 @@ print_error_list(void)
 	}
 }
 
-void
-opkg_message (message_level_t level, const char *fmt, ...)
+void opkg_message(message_level_t level, const char *fmt, ...)
 {
 	va_list ap;
 
@@ -83,13 +79,13 @@ opkg_message (message_level_t level, const char *fmt, ...)
 
 	if (conf->opkg_vmessage) {
 		/* Pass the message to libopkg users. */
-		va_start (ap, fmt);
+		va_start(ap, fmt);
 		conf->opkg_vmessage(level, fmt, ap);
-		va_end (ap);
+		va_end(ap);
 		return;
 	}
 
-	va_start (ap, fmt);
+	va_start(ap, fmt);
 
 	if (level == ERROR) {
 #define MSG_LEN 4096
@@ -98,24 +94,22 @@ opkg_message (message_level_t level, const char *fmt, ...)
 		ret = vsnprintf(msg, MSG_LEN, fmt, ap);
 		if (ret < 0) {
 			fprintf(stderr, "%s: encountered an output or encoding"
-					" error during vsnprintf.\n",
-					__FUNCTION__);
-			va_end (ap);
+				" error during vsnprintf.\n", __FUNCTION__);
+			va_end(ap);
 			exit(EXIT_FAILURE);
 		}
 		if (ret >= MSG_LEN) {
 			fprintf(stderr, "%s: Message truncated.\n",
-					__FUNCTION__);
+				__FUNCTION__);
 		}
 		push_error_list(msg);
 	} else {
 		if (vprintf(fmt, ap) < 0) {
 			fprintf(stderr, "%s: encountered an output or encoding"
-					" error during vprintf.\n",
-					__FUNCTION__);
+				" error during vprintf.\n", __FUNCTION__);
 			exit(EXIT_FAILURE);
 		}
 	}
 
-	va_end (ap);
+	va_end(ap);
 }

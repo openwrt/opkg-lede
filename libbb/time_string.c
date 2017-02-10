@@ -25,7 +25,6 @@
 #include <utime.h>
 #include "libbb.h"
 
-
 /*
  * Return the standard ls-like time string from a time_t
  * This is static and so is overwritten on each call.
@@ -50,7 +49,6 @@ const char *time_string(time_t timeVal)
 
 	return buf;
 }
-
 
 /* END CODE */
 /*

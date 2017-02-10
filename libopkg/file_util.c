@@ -35,8 +35,7 @@
 #include "sha256.h"
 #endif
 
-int
-file_exists(const char *file_name)
+int file_exists(const char *file_name)
 {
 	struct stat st;
 
@@ -46,8 +45,7 @@ file_exists(const char *file_name)
 	return 1;
 }
 
-int
-file_is_dir(const char *file_name)
+int file_is_dir(const char *file_name)
 {
 	struct stat st;
 
@@ -64,8 +62,7 @@ file_is_dir(const char *file_name)
 
    Return value is NULL if the file is at EOF when called.
 */
-char *
-file_read_line_alloc(FILE *fp)
+char *file_read_line_alloc(FILE * fp)
 {
 	char buf[BUFSIZ];
 	unsigned int buf_len;
@@ -84,7 +81,7 @@ file_read_line_alloc(FILE *fp)
 		}
 		if (line) {
 			line_size += buf_len;
-			line = xrealloc(line, line_size+1);
+			line = xrealloc(line, line_size + 1);
 			strncat(line, buf, line_size);
 		} else {
 			line_size = buf_len + 1;
@@ -97,8 +94,7 @@ file_read_line_alloc(FILE *fp)
 	return line;
 }
 
-int
-file_move(const char *src, const char *dest)
+int file_move(const char *src, const char *dest)
 {
 	int err;
 
@@ -111,28 +107,25 @@ file_move(const char *src, const char *dest)
 				unlink(src);
 		} else {
 			opkg_perror(ERROR, "Failed to rename %s to %s",
-				src, dest);
+				    src, dest);
 		}
 	}
 
 	return err;
 }
 
-int
-file_copy(const char *src, const char *dest)
+int file_copy(const char *src, const char *dest)
 {
 	int err;
 
 	err = copy_file(src, dest, FILEUTILS_FORCE | FILEUTILS_PRESERVE_STATUS);
 	if (err)
-		opkg_msg(ERROR, "Failed to copy file %s to %s.\n",
-				src, dest);
+		opkg_msg(ERROR, "Failed to copy file %s to %s.\n", src, dest);
 
 	return err;
 }
 
-int
-file_mkdir_hier(const char *path, long mode)
+int file_mkdir_hier(const char *path, long mode)
 {
 	return make_directory(path, mode, FILEUTILS_RECUR);
 }
@@ -140,103 +133,102 @@ file_mkdir_hier(const char *path, long mode)
 #ifdef HAVE_MD5
 char *file_md5sum_alloc(const char *file_name)
 {
-    static const int md5sum_bin_len = 16;
-    static const int md5sum_hex_len = 32;
+	static const int md5sum_bin_len = 16;
+	static const int md5sum_hex_len = 32;
 
-    static const unsigned char bin2hex[16] = {
-	'0', '1', '2', '3',
-	'4', '5', '6', '7',
-	'8', '9', 'a', 'b',
-	'c', 'd', 'e', 'f'
-    };
+	static const unsigned char bin2hex[16] = {
+		'0', '1', '2', '3',
+		'4', '5', '6', '7',
+		'8', '9', 'a', 'b',
+		'c', 'd', 'e', 'f'
+	};
 
-    int i, err;
-    FILE *file;
-    char *md5sum_hex;
-    unsigned char md5sum_bin[md5sum_bin_len];
+	int i, err;
+	FILE *file;
+	char *md5sum_hex;
+	unsigned char md5sum_bin[md5sum_bin_len];
 
-    md5sum_hex = xcalloc(1, md5sum_hex_len + 1);
+	md5sum_hex = xcalloc(1, md5sum_hex_len + 1);
 
-    file = fopen(file_name, "r");
-    if (file == NULL) {
-	opkg_perror(ERROR, "Failed to open file %s", file_name);
-	free(md5sum_hex);
-	return NULL;
-    }
+	file = fopen(file_name, "r");
+	if (file == NULL) {
+		opkg_perror(ERROR, "Failed to open file %s", file_name);
+		free(md5sum_hex);
+		return NULL;
+	}
 
-    err = md5_stream(file, md5sum_bin);
-    if (err) {
-	opkg_msg(ERROR, "Could't compute md5sum for %s.\n", file_name);
+	err = md5_stream(file, md5sum_bin);
+	if (err) {
+		opkg_msg(ERROR, "Could't compute md5sum for %s.\n", file_name);
+		fclose(file);
+		free(md5sum_hex);
+		return NULL;
+	}
+
 	fclose(file);
-	free(md5sum_hex);
-	return NULL;
-    }
 
-    fclose(file);
+	for (i = 0; i < md5sum_bin_len; i++) {
+		md5sum_hex[i * 2] = bin2hex[md5sum_bin[i] >> 4];
+		md5sum_hex[i * 2 + 1] = bin2hex[md5sum_bin[i] & 0xf];
+	}
 
-    for (i=0; i < md5sum_bin_len; i++) {
-	md5sum_hex[i*2] = bin2hex[md5sum_bin[i] >> 4];
-	md5sum_hex[i*2+1] = bin2hex[md5sum_bin[i] & 0xf];
-    }
+	md5sum_hex[md5sum_hex_len] = '\0';
 
-    md5sum_hex[md5sum_hex_len] = '\0';
-
-    return md5sum_hex;
+	return md5sum_hex;
 }
 #endif
 
 #ifdef HAVE_SHA256
 char *file_sha256sum_alloc(const char *file_name)
 {
-    static const int sha256sum_bin_len = 32;
-    static const int sha256sum_hex_len = 64;
+	static const int sha256sum_bin_len = 32;
+	static const int sha256sum_hex_len = 64;
 
-    static const unsigned char bin2hex[16] = {
-	'0', '1', '2', '3',
-	'4', '5', '6', '7',
-	'8', '9', 'a', 'b',
-	'c', 'd', 'e', 'f'
-    };
+	static const unsigned char bin2hex[16] = {
+		'0', '1', '2', '3',
+		'4', '5', '6', '7',
+		'8', '9', 'a', 'b',
+		'c', 'd', 'e', 'f'
+	};
 
-    int i, err;
-    FILE *file;
-    char *sha256sum_hex;
-    unsigned char sha256sum_bin[sha256sum_bin_len];
+	int i, err;
+	FILE *file;
+	char *sha256sum_hex;
+	unsigned char sha256sum_bin[sha256sum_bin_len];
 
-    sha256sum_hex = xcalloc(1, sha256sum_hex_len + 1);
+	sha256sum_hex = xcalloc(1, sha256sum_hex_len + 1);
 
-    file = fopen(file_name, "r");
-    if (file == NULL) {
-	opkg_perror(ERROR, "Failed to open file %s", file_name);
-	free(sha256sum_hex);
-	return NULL;
-    }
+	file = fopen(file_name, "r");
+	if (file == NULL) {
+		opkg_perror(ERROR, "Failed to open file %s", file_name);
+		free(sha256sum_hex);
+		return NULL;
+	}
 
-    err = sha256_stream(file, sha256sum_bin);
-    if (err) {
-	opkg_msg(ERROR, "Could't compute sha256sum for %s.\n", file_name);
+	err = sha256_stream(file, sha256sum_bin);
+	if (err) {
+		opkg_msg(ERROR, "Could't compute sha256sum for %s.\n",
+			 file_name);
+		fclose(file);
+		free(sha256sum_hex);
+		return NULL;
+	}
+
 	fclose(file);
-	free(sha256sum_hex);
-	return NULL;
-    }
 
-    fclose(file);
+	for (i = 0; i < sha256sum_bin_len; i++) {
+		sha256sum_hex[i * 2] = bin2hex[sha256sum_bin[i] >> 4];
+		sha256sum_hex[i * 2 + 1] = bin2hex[sha256sum_bin[i] & 0xf];
+	}
 
-    for (i=0; i < sha256sum_bin_len; i++) {
-	sha256sum_hex[i*2] = bin2hex[sha256sum_bin[i] >> 4];
-	sha256sum_hex[i*2+1] = bin2hex[sha256sum_bin[i] & 0xf];
-    }
+	sha256sum_hex[sha256sum_hex_len] = '\0';
 
-    sha256sum_hex[sha256sum_hex_len] = '\0';
-
-    return sha256sum_hex;
+	return sha256sum_hex;
 }
 
 #endif
 
-
-int
-rm_r(const char *path)
+int rm_r(const char *path)
 {
 	int ret = 0;
 	DIR *dir;
@@ -264,7 +256,7 @@ rm_r(const char *path)
 		if ((dent = readdir(dir)) == NULL) {
 			if (errno) {
 				opkg_perror(ERROR, "Failed to read dir %s",
-						path);
+					    path);
 				ret = -1;
 			}
 			break;
@@ -284,7 +276,7 @@ rm_r(const char *path)
 			struct stat st;
 			if ((ret = lstat(dent->d_name, &st)) == -1) {
 				opkg_perror(ERROR, "Failed to lstat %s",
-						dent->d_name);
+					    dent->d_name);
 				break;
 			}
 			if (S_ISDIR(st.st_mode)) {
@@ -305,7 +297,7 @@ rm_r(const char *path)
 		opkg_perror(ERROR, "Failed to change to dir %s/..", path);
 	}
 
-	if (rmdir(path) == -1 ) {
+	if (rmdir(path) == -1) {
 		ret = -1;
 		opkg_perror(ERROR, "Failed to remove dir %s", path);
 	}

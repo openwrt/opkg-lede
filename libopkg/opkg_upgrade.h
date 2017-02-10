@@ -16,7 +16,7 @@
 #define OPKG_UPGRADE_H
 
 #include "active_list.h"
-int opkg_upgrade_pkg(pkg_t *old);
-struct active_list * prepare_upgrade_list (void);
+int opkg_upgrade_pkg(pkg_t * old);
+struct active_list *prepare_upgrade_list(void);
 
 #endif

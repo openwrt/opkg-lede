@@ -27,7 +27,8 @@
 
 /* Copy CHUNKSIZE bytes (or until EOF if CHUNKSIZE equals -1) from SRC_FILE
  * to DST_FILE.  */
-extern int copy_file_chunk(FILE *src_file, FILE *dst_file, unsigned long long chunksize)
+extern int copy_file_chunk(FILE * src_file, FILE * dst_file,
+			   unsigned long long chunksize)
 {
 	size_t nread, nwritten, size;
 	char buffer[BUFSIZ];
@@ -38,27 +39,27 @@ extern int copy_file_chunk(FILE *src_file, FILE *dst_file, unsigned long long ch
 		else
 			size = chunksize;
 
-		nread = fread (buffer, 1, size, src_file);
+		nread = fread(buffer, 1, size, src_file);
 
-		if (nread != size && ferror (src_file)) {
-			perror_msg ("read");
+		if (nread != size && ferror(src_file)) {
+			perror_msg("read");
 			return -1;
 		} else if (nread == 0) {
 			if (chunksize != -1) {
-				error_msg ("Unable to read all data");
+				error_msg("Unable to read all data");
 				return -1;
 			}
 
 			return 0;
 		}
 
-		nwritten = fwrite (buffer, 1, nread, dst_file);
+		nwritten = fwrite(buffer, 1, nread, dst_file);
 
 		if (nwritten != nread) {
-			if (ferror (dst_file))
-				perror_msg ("write");
+			if (ferror(dst_file))
+				perror_msg("write");
 			else
-				error_msg ("Unable to write all data");
+				error_msg("Unable to write all data");
 			return -1;
 		}
 

@@ -18,8 +18,7 @@
 #include "sprintf_alloc.h"
 #include "libbb/libbb.h"
 
-void
-sprintf_alloc(char **str, const char *fmt, ...)
+void sprintf_alloc(char **str, const char *fmt, ...)
 {
 	va_list ap;
 	int n;
@@ -29,13 +28,12 @@ sprintf_alloc(char **str, const char *fmt, ...)
 
 	for (;;) {
 		va_start(ap, fmt);
-		n = vsnprintf (*str, size, fmt, ap);
+		n = vsnprintf(*str, size, fmt, ap);
 		va_end(ap);
 
 		if (n < 0) {
 			fprintf(stderr, "%s: encountered an output or encoding"
-					" error during vsnprintf.\n",
-					__FUNCTION__);
+				" error during vsnprintf.\n", __FUNCTION__);
 			exit(EXIT_FAILURE);
 		}
 
@@ -43,7 +41,7 @@ sprintf_alloc(char **str, const char *fmt, ...)
 			break;
 
 		/* Truncated, try again with more space. */
-		size = n+1;
+		size = n + 1;
 		*str = xrealloc(*str, size);
 	}
 }

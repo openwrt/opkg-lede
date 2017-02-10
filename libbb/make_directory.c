@@ -34,44 +34,44 @@
  * Also create parent directories as necessary if flags contains
  * FILEUTILS_RECUR.  */
 
-int make_directory (const char *path, long mode, int flags)
+int make_directory(const char *path, long mode, int flags)
 {
 	if (!(flags & FILEUTILS_RECUR)) {
-		if (mkdir (path, 0777) < 0) {
-			perror_msg ("Cannot create directory `%s'", path);
+		if (mkdir(path, 0777) < 0) {
+			perror_msg("Cannot create directory `%s'", path);
 			return -1;
 		}
 
-		if (mode != -1 && chmod (path, mode) < 0) {
-			perror_msg ("Cannot set permissions of directory `%s'", path);
+		if (mode != -1 && chmod(path, mode) < 0) {
+			perror_msg("Cannot set permissions of directory `%s'",
+				   path);
 			return -1;
 		}
 	} else {
 		struct stat st;
 
-		if (stat (path, &st) < 0 && errno == ENOENT) {
+		if (stat(path, &st) < 0 && errno == ENOENT) {
 			int status;
 			char *pathcopy, *parent, *parentcopy;
 			mode_t mask;
 
-			mask = umask (0);
-			umask (mask);
+			mask = umask(0);
+			umask(mask);
 
 			/* dirname is unsafe, it may both modify the
 			   memory of the path argument and may return
 			   a pointer to static memory, which can then
 			   be modified by consequtive calls to dirname */
 
-			pathcopy = xstrdup (path);
-			parent = dirname (pathcopy);
-			parentcopy = xstrdup (parent);
-			status = make_directory (parentcopy, (0777 & ~mask)
-									 | 0300, FILEUTILS_RECUR);
-			free (pathcopy);
-			free (parentcopy);
+			pathcopy = xstrdup(path);
+			parent = dirname(pathcopy);
+			parentcopy = xstrdup(parent);
+			status = make_directory(parentcopy, (0777 & ~mask)
+						| 0300, FILEUTILS_RECUR);
+			free(pathcopy);
+			free(parentcopy);
 
-
-			if (status < 0 || make_directory (path, mode, 0) < 0)
+			if (status < 0 || make_directory(path, mode, 0) < 0)
 				return -1;
 		}
 	}

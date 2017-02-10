@@ -34,7 +34,7 @@ struct gzip_handle {
 
 int gzip_exec(struct gzip_handle *zh, const char *filename);
 ssize_t gzip_read(struct gzip_handle *zh, char *buf, ssize_t len);
-ssize_t gzip_copy(struct gzip_handle *zh, FILE *out, ssize_t len);
+ssize_t gzip_copy(struct gzip_handle *zh, FILE * out, ssize_t len);
 int gzip_close(struct gzip_handle *zh);
 FILE *gzip_fdopen(struct gzip_handle *zh, const char *filename);
 

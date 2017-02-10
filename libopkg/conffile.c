@@ -24,47 +24,49 @@
 #include "sprintf_alloc.h"
 #include "opkg_conf.h"
 
-int conffile_init(conffile_t *conffile, const char *file_name, const char *md5sum)
+int conffile_init(conffile_t * conffile, const char *file_name,
+		  const char *md5sum)
 {
-    return nv_pair_init(conffile, file_name, md5sum);
+	return nv_pair_init(conffile, file_name, md5sum);
 }
 
-void conffile_deinit(conffile_t *conffile)
+void conffile_deinit(conffile_t * conffile)
 {
-    nv_pair_deinit(conffile);
+	nv_pair_deinit(conffile);
 }
 
-int conffile_has_been_modified(conffile_t *conffile)
+int conffile_has_been_modified(conffile_t * conffile)
 {
-    char *chksum;
-    char *filename = conffile->name;
-    char *root_filename;
-    int ret = 1;
+	char *chksum;
+	char *filename = conffile->name;
+	char *root_filename;
+	int ret = 1;
 
-    if (conffile->value == NULL) {
-	 opkg_msg(NOTICE, "Conffile %s has no md5sum.\n", conffile->name);
-	 return 1;
-    }
+	if (conffile->value == NULL) {
+		opkg_msg(NOTICE, "Conffile %s has no md5sum.\n",
+			 conffile->name);
+		return 1;
+	}
 
-    root_filename = root_filename_alloc(filename);
+	root_filename = root_filename_alloc(filename);
 
 #ifdef HAVE_MD5
-    if(conffile->value && strlen(conffile->value) > 33) {
-        chksum = file_sha256sum_alloc(root_filename);
-    } else {
-        chksum = file_md5sum_alloc(root_filename);
-    }
+	if (conffile->value && strlen(conffile->value) > 33) {
+		chksum = file_sha256sum_alloc(root_filename);
+	} else {
+		chksum = file_md5sum_alloc(root_filename);
+	}
 #else
-    chksum = file_sha256sum_alloc(root_filename);
+	chksum = file_sha256sum_alloc(root_filename);
 #endif
-    if (chksum && (ret = strcmp(chksum, conffile->value))) {
-        opkg_msg(INFO, "Conffile %s:\n\told chk=%s\n\tnew chk=%s\n",
-		conffile->name, chksum, conffile->value);
-    }
+	if (chksum && (ret = strcmp(chksum, conffile->value))) {
+		opkg_msg(INFO, "Conffile %s:\n\told chk=%s\n\tnew chk=%s\n",
+			 conffile->name, chksum, conffile->value);
+	}
 
-    free(root_filename);
-    if (chksum)
-        free(chksum);
+	free(root_filename);
+	if (chksum)
+		free(chksum);
 
-    return ret;
+	return ret;
 }

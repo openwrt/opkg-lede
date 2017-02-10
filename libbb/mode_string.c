@@ -24,8 +24,6 @@
 #include <stdio.h>
 #include "libbb.h"
 
-
-
 #define TYPEINDEX(mode) (((mode) >> 12) & 0x0f)
 #define TYPECHAR(mode)  ("0pcCd?bB-?l?s???" [TYPEINDEX(mode)])
 
@@ -43,8 +41,8 @@ static const mode_t MBIT[] = {
 	S_IROTH, S_IWOTH, S_IXOTH
 };
 
-static const char MODE1[]  = "rwxrwxrwx";
-static const char MODE0[]  = "---------";
+static const char MODE1[] = "rwxrwxrwx";
+static const char MODE0[] = "---------";
 static const char SMODE1[] = "..s..s..t";
 static const char SMODE0[] = "..S..S..T";
 

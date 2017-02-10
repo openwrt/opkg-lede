@@ -30,8 +30,7 @@
 
 #include "gzip.h"
 
-static void
-to_devnull(int fd)
+static void to_devnull(int fd)
 {
 	int devnull = open("/dev/null", fd ? O_WRONLY : O_RDONLY);
 
@@ -42,8 +41,7 @@ to_devnull(int fd)
 		close(devnull);
 }
 
-void *
-gzip_thread(void *ptr)
+void *gzip_thread(void *ptr)
 {
 	struct gzip_handle *zh = ptr;
 	char buf[4096];
@@ -67,11 +65,11 @@ gzip_thread(void *ptr)
 	zh->wfd = -1;
 }
 
-int
-gzip_exec(struct gzip_handle *zh, const char *filename)
+int gzip_exec(struct gzip_handle *zh, const char *filename)
 {
-	int rpipe[2] = { -1, -1 }, wpipe[2] = { -1, -1 };
-	struct sigaction pipe_sa = { .sa_handler = SIG_IGN };
+	int rpipe[2] = { -1, -1 }, wpipe[2] = {
+	-1, -1};
+	struct sigaction pipe_sa = {.sa_handler = SIG_IGN };
 
 	zh->rfd = -1;
 	zh->wfd = -1;
@@ -91,47 +89,46 @@ gzip_exec(struct gzip_handle *zh, const char *filename)
 	zh->pid = vfork();
 
 	switch (zh->pid) {
-		case -1:
-			return -1;
+	case -1:
+		return -1;
 
-		case 0:
-			to_devnull(STDERR_FILENO);
+	case 0:
+		to_devnull(STDERR_FILENO);
 
-			if (filename) {
-				to_devnull(STDIN_FILENO);
-			}
-			else {
-				dup2(wpipe[0], STDIN_FILENO);
-				close(wpipe[0]);
-				close(wpipe[1]);
-			}
+		if (filename) {
+			to_devnull(STDIN_FILENO);
+		} else {
+			dup2(wpipe[0], STDIN_FILENO);
+			close(wpipe[0]);
+			close(wpipe[1]);
+		}
 
-			dup2(rpipe[1], STDOUT_FILENO);
-			close(rpipe[0]);
-			close(rpipe[1]);
+		dup2(rpipe[1], STDOUT_FILENO);
+		close(rpipe[0]);
+		close(rpipe[1]);
 
-			execlp("gzip", "gzip", "-d",  "-c", filename, NULL);
-			exit(-1);
+		execlp("gzip", "gzip", "-d", "-c", filename, NULL);
+		exit(-1);
 
-		default:
-			zh->rfd = rpipe[0];
-			zh->wfd = wpipe[1];
+	default:
+		zh->rfd = rpipe[0];
+		zh->wfd = wpipe[1];
 
-			fcntl(zh->rfd, F_SETFD, fcntl(zh->rfd, F_GETFD) | FD_CLOEXEC);
-			close(rpipe[1]);
+		fcntl(zh->rfd, F_SETFD, fcntl(zh->rfd, F_GETFD) | FD_CLOEXEC);
+		close(rpipe[1]);
 
-			if (zh->wfd >= 0) {
-				fcntl(zh->wfd, F_SETFD, fcntl(zh->wfd, F_GETFD) | FD_CLOEXEC);
-				close(wpipe[0]);
-				pthread_create(&zh->thread, NULL, gzip_thread, zh);
-			}
+		if (zh->wfd >= 0) {
+			fcntl(zh->wfd, F_SETFD,
+			      fcntl(zh->wfd, F_GETFD) | FD_CLOEXEC);
+			close(wpipe[0]);
+			pthread_create(&zh->thread, NULL, gzip_thread, zh);
+		}
 	}
 
 	return 0;
 }
 
-ssize_t
-gzip_read(struct gzip_handle *zh, char *buf, ssize_t len)
+ssize_t gzip_read(struct gzip_handle * zh, char *buf, ssize_t len)
 {
 	ssize_t ret;
 
@@ -142,15 +139,14 @@ gzip_read(struct gzip_handle *zh, char *buf, ssize_t len)
 	return ret;
 }
 
-ssize_t
-gzip_copy(struct gzip_handle *zh, FILE *out, ssize_t len)
+ssize_t gzip_copy(struct gzip_handle * zh, FILE * out, ssize_t len)
 {
 	char buf[4096];
 	ssize_t rlen, total = 0;
 
 	while (len > 0) {
 		rlen = gzip_read(zh, buf,
-				    (len > sizeof(buf)) ? sizeof(buf) : len);
+				 (len > sizeof(buf)) ? sizeof(buf) : len);
 
 		if (rlen <= 0)
 			break;
@@ -167,8 +163,7 @@ gzip_copy(struct gzip_handle *zh, FILE *out, ssize_t len)
 	return total;
 }
 
-FILE *
-gzip_fdopen(struct gzip_handle *zh, const char *filename)
+FILE *gzip_fdopen(struct gzip_handle * zh, const char *filename)
 {
 	memset(zh, 0, sizeof(*zh));
 
@@ -180,8 +175,7 @@ gzip_fdopen(struct gzip_handle *zh, const char *filename)
 	return fdopen(zh->rfd, "r");
 }
 
-int
-gzip_close(struct gzip_handle *zh)
+int gzip_close(struct gzip_handle *zh)
 {
 	int code = -1;
 

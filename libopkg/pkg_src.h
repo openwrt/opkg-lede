@@ -20,15 +20,15 @@
 
 #include "nv_pair.h"
 
-typedef struct
-{
-  char *name;
-  char *value;
-  char *extra_data;
-  int gzip;
+typedef struct {
+	char *name;
+	char *value;
+	char *extra_data;
+	int gzip;
 } pkg_src_t;
 
-int pkg_src_init(pkg_src_t *src, const char *name, const char *base_url, const char *extra_data, int gzip);
-void pkg_src_deinit(pkg_src_t *src);
+int pkg_src_init(pkg_src_t * src, const char *name, const char *base_url,
+		 const char *extra_data, int gzip);
+void pkg_src_deinit(pkg_src_t * src);
 
 #endif

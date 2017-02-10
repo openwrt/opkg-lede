@@ -24,7 +24,7 @@ extern opkg_conf_t *conf;
 #include "config.h"
 
 #include <stdarg.h>
-#include <fnmatch.h> /* FNM_CASEFOLD */
+#include <fnmatch.h>		/* FNM_CASEFOLD */
 
 #include "hash_table.h"
 #include "pkg_src_list.h"
@@ -43,101 +43,100 @@ extern opkg_conf_t *conf;
 
 #define OPKG_CONF_DEFAULT_HASH_LEN 1024
 
-struct opkg_conf
-{
-     pkg_src_list_t pkg_src_list;
-     pkg_src_list_t dist_src_list;
-     pkg_dest_list_t pkg_dest_list;
-     pkg_dest_list_t tmp_dest_list;
-     nv_pair_list_t arch_list;
+struct opkg_conf {
+	pkg_src_list_t pkg_src_list;
+	pkg_src_list_t dist_src_list;
+	pkg_dest_list_t pkg_dest_list;
+	pkg_dest_list_t tmp_dest_list;
+	nv_pair_list_t arch_list;
 
-     int restrict_to_default_dest;
-     pkg_dest_t *default_dest;
-     char *dest_str;
+	int restrict_to_default_dest;
+	pkg_dest_t *default_dest;
+	char *dest_str;
 
-     char *conf_file;
+	char *conf_file;
 
-     char *tmp_dir;
-     char *lists_dir;
+	char *tmp_dir;
+	char *lists_dir;
 
-     unsigned int pfm; /* package field mask */
+	unsigned int pfm;	/* package field mask */
 
-     /* For libopkg users to capture messages. */
-     void (*opkg_vmessage)(int, const char *fmt, va_list ap);
+	/* For libopkg users to capture messages. */
+	void (*opkg_vmessage) (int, const char *fmt, va_list ap);
 
-     /* options */
-     int autoremove;
-     int force_depends;
-     int force_defaults;
-     int force_maintainer;
-     int force_overwrite;
-     int force_downgrade;
-     int force_reinstall;
-     int force_space;
-     int force_removal_of_dependent_packages;
-     int force_removal_of_essential_packages;
-     int force_postinstall;
-     int force_remove;
-     int force_checksum;
-     int check_signature;
-     int force_signature;
-     int nodeps; /* do not follow dependencies */
-     int nocase; /* perform case insensitive matching */
-     char *offline_root;
-     char *overlay_root;
-     int query_all;
-     int verbosity;
-     int noaction;
-     int size;
-     int download_only;
-     char *cache;
+	/* options */
+	int autoremove;
+	int force_depends;
+	int force_defaults;
+	int force_maintainer;
+	int force_overwrite;
+	int force_downgrade;
+	int force_reinstall;
+	int force_space;
+	int force_removal_of_dependent_packages;
+	int force_removal_of_essential_packages;
+	int force_postinstall;
+	int force_remove;
+	int force_checksum;
+	int check_signature;
+	int force_signature;
+	int nodeps;		/* do not follow dependencies */
+	int nocase;		/* perform case insensitive matching */
+	char *offline_root;
+	char *overlay_root;
+	int query_all;
+	int verbosity;
+	int noaction;
+	int size;
+	int download_only;
+	char *cache;
 
 #ifdef HAVE_SSLCURL
-     /* some options could be used by
-      * wget if curl support isn't builtin
-      * If someone want to try...
-      */
-     char *ssl_engine;
-     char *ssl_cert;
-     char *ssl_cert_type;
-     char *ssl_key;
-     char *ssl_key_type;
-     char *ssl_key_passwd;
-     char *ssl_ca_file;
-     char *ssl_ca_path;
-     int ssl_dont_verify_peer;
+	/* some options could be used by
+	 * wget if curl support isn't builtin
+	 * If someone want to try...
+	 */
+	char *ssl_engine;
+	char *ssl_cert;
+	char *ssl_cert_type;
+	char *ssl_key;
+	char *ssl_key_type;
+	char *ssl_key_passwd;
+	char *ssl_ca_file;
+	char *ssl_ca_path;
+	int ssl_dont_verify_peer;
 #endif
 #ifdef HAVE_PATHFINDER
-     int check_x509_path;
+	int check_x509_path;
 #endif
 
-     /* proxy options */
-     char *http_proxy;
-     char *ftp_proxy;
-     char *no_proxy;
-     char *proxy_user;
-     char *proxy_passwd;
+	/* proxy options */
+	char *http_proxy;
+	char *ftp_proxy;
+	char *no_proxy;
+	char *proxy_user;
+	char *proxy_passwd;
 
-     char *signature_ca_file;
-     char *signature_ca_path;
+	char *signature_ca_file;
+	char *signature_ca_path;
 
-     hash_table_t pkg_hash;
-     hash_table_t file_hash;
-     hash_table_t obs_file_hash;
+	hash_table_t pkg_hash;
+	hash_table_t file_hash;
+	hash_table_t obs_file_hash;
 };
 
 enum opkg_option_type {
-     OPKG_OPT_TYPE_BOOL,
-     OPKG_OPT_TYPE_INT,
-     OPKG_OPT_TYPE_STRING
+	OPKG_OPT_TYPE_BOOL,
+	OPKG_OPT_TYPE_INT,
+	OPKG_OPT_TYPE_STRING
 };
 typedef enum opkg_option_type opkg_option_type_t;
 
 typedef struct opkg_option opkg_option_t;
 struct opkg_option {
-     const char *name;
-     const opkg_option_type_t type;
-     void * const value;
+	const char *name;
+	const opkg_option_type_t type;
+	void *const value;
 };
 
 int opkg_conf_init(void);

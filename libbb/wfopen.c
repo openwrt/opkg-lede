@@ -33,7 +33,6 @@ FILE *wfopen(const char *path, const char *mode)
 	return fp;
 }
 
-
 /* END CODE */
 /*
 Local Variables:

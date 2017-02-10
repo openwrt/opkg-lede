@@ -19,14 +19,12 @@
 #define NV_PAIR_H
 
 typedef struct nv_pair nv_pair_t;
-struct nv_pair
-{
-    char *name;
-    char *value;
+struct nv_pair {
+	char *name;
+	char *value;
 };
 
-int nv_pair_init(nv_pair_t *nv_pair, const char *name, const char *value);
-void nv_pair_deinit(nv_pair_t *nv_pair);
+int nv_pair_init(nv_pair_t * nv_pair, const char *name, const char *value);
+void nv_pair_deinit(nv_pair_t * nv_pair);
 
 #endif
-
