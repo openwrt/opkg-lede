@@ -35,7 +35,12 @@ is_field(const char *type, const char *line)
 char *
 parse_simple(const char *type, const char *line)
 {
-	return trim_xstrdup(line + strlen(type) + 1);
+	char *field = trim_xstrdup(line + strlen(type) + 1);
+	if (strlen(field) == 0) {
+		free(field);
+		return NULL;
+	}
+	return field;
 }
 
 /*
