@@ -47,6 +47,7 @@ enum {
 	ARGS_OPT_NOACTION,
 	ARGS_OPT_DOWNLOAD_ONLY,
 	ARGS_OPT_NODEPS,
+	ARGS_OPT_NOCASE,
 	ARGS_OPT_AUTOREMOVE,
 	ARGS_OPT_CACHE,
 };
@@ -86,6 +87,7 @@ static struct option long_options[] = {
 	{"noaction", 0, 0, ARGS_OPT_NOACTION},
 	{"download-only", 0, 0, ARGS_OPT_DOWNLOAD_ONLY},
 	{"nodeps", 0, 0, ARGS_OPT_NODEPS},
+	{"nocase", 0, 0, ARGS_OPT_NOCASE},
 	{"offline", 1, 0, 'o'},
 	{"offline-root", 1, 0, 'o'},
 	{"add-arch", 1, 0, ARGS_OPT_ADD_ARCH},
@@ -107,7 +109,7 @@ args_parse(int argc, char *argv[])
 	char *tuple, *targ;
 
 	while (1) {
-		c = getopt_long_only(argc, argv, "Ad:f:no:p:t:vV::",
+		c = getopt_long_only(argc, argv, "Ad:f:ino:p:t:vV::",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -121,6 +123,9 @@ args_parse(int argc, char *argv[])
 			break;
 		case 'f':
 			conf->conf_file = xstrdup(optarg);
+			break;
+		case 'i':
+			conf->nocase = FNM_CASEFOLD;
 			break;
 		case 'o':
 			conf->offline_root = xstrdup(optarg);
@@ -175,6 +180,9 @@ args_parse(int argc, char *argv[])
 			break;
 		case ARGS_OPT_NODEPS:
 			conf->nodeps = 1;
+			break;
+		case ARGS_OPT_NOCASE:
+			conf->nocase = FNM_CASEFOLD;
 			break;
 		case ARGS_OPT_ADD_ARCH:
 		case ARGS_OPT_ADD_DEST:
@@ -287,6 +295,7 @@ usage()
 	printf("\t--noaction		No action -- test only\n");
 	printf("\t--download-only	No action -- download only\n");
 	printf("\t--nodeps		Do not follow dependencies\n");
+	printf("\t--nocase		Perform case insensitive pattern matching\n");
 	printf("\t--force-removal-of-dependent-packages\n");
 	printf("\t			Remove package and all dependencies\n");
 	printf("\t--autoremove		Remove packages that were installed\n");

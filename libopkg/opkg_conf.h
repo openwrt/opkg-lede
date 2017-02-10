@@ -24,6 +24,7 @@ extern opkg_conf_t *conf;
 #include "config.h"
 
 #include <stdarg.h>
+#include <fnmatch.h> /* FNM_CASEFOLD */
 
 #include "hash_table.h"
 #include "pkg_src_list.h"
@@ -79,6 +80,7 @@ struct opkg_conf
      int force_remove;
      int check_signature;
      int nodeps; /* do not follow dependencies */
+     int nocase; /* perform case insensitive matching */
      char *offline_root;
      char *overlay_root;
      int query_all;

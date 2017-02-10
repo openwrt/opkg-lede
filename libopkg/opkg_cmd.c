@@ -436,7 +436,7 @@ opkg_configure_packages(char *pkg_name)
      for(i = 0; i < ordered->len; i++) {
 	  pkg = ordered->pkgs[i];
 
-	  if (pkg_name && fnmatch(pkg_name, pkg->name, 0))
+	  if (pkg_name && fnmatch(pkg_name, pkg->name, conf->nocase))
 	       continue;
 
 	  if (pkg->state_status == SS_UNPACKED) {
@@ -610,7 +610,7 @@ opkg_list_cmd(int argc, char **argv)
      for (i=0; i < available->len; i++) {
 	  pkg = available->pkgs[i];
 	  /* if we have package name or pattern and pkg does not match, then skip it */
-	  if (pkg_name && fnmatch(pkg_name, pkg->name, 0))
+	  if (pkg_name && fnmatch(pkg_name, pkg->name, conf->nocase))
 	       continue;
           print_pkg(pkg);
      }
@@ -637,7 +637,7 @@ opkg_list_installed_cmd(int argc, char **argv)
      for (i=0; i < available->len; i++) {
 	  pkg = available->pkgs[i];
 	  /* if we have package name or pattern and pkg does not match, then skip it */
-	  if (pkg_name && fnmatch(pkg_name, pkg->name, 0))
+	  if (pkg_name && fnmatch(pkg_name, pkg->name, conf->nocase))
 	       continue;
           print_pkg(pkg);
      }
@@ -666,7 +666,7 @@ opkg_list_changed_conffiles_cmd(int argc, char **argv)
      for (i=0; i < available->len; i++) {
 	  pkg = available->pkgs[i];
 	  /* if we have package name or pattern and pkg does not match, then skip it */
-	  if (pkg_name && fnmatch(pkg_name, pkg->name, 0))
+	  if (pkg_name && fnmatch(pkg_name, pkg->name, conf->nocase))
 	    continue;
 	  if (nv_pair_list_empty(&pkg->conffiles))
 	    continue;
@@ -722,7 +722,7 @@ opkg_info_status_cmd(int argc, char **argv, int installed_only)
 
      for (i=0; i < available->len; i++) {
 	  pkg = available->pkgs[i];
-	  if (pkg_name && fnmatch(pkg_name, pkg->name, 0)) {
+	  if (pkg_name && fnmatch(pkg_name, pkg->name, conf->nocase)) {
 	       continue;
 	  }
 
@@ -792,7 +792,7 @@ opkg_remove_cmd(int argc, char **argv)
      for (i=0; i<argc; i++) {
         for (a=0; a<available->len; a++) {
             pkg = available->pkgs[a];
-	    if (fnmatch(argv[i], pkg->name, 0)) {
+	    if (fnmatch(argv[i], pkg->name, conf->nocase)) {
                continue;
             }
             if (conf->restrict_to_default_dest) {
@@ -926,7 +926,7 @@ opkg_depends_cmd(int argc, char **argv)
 		for (j=0; j<available_pkgs->len; j++) {
 			pkg = available_pkgs->pkgs[j];
 
-			if (fnmatch(argv[i], pkg->name, 0) != 0)
+			if (fnmatch(argv[i], pkg->name, conf->nocase) != 0)
 				continue;
 
 			depends_count = pkg->depends_count +
@@ -1147,9 +1147,9 @@ opkg_what_provides_replaces_cmd(enum what_field_type what_field_type, int argc, 
 			      ((what_field_type == WHATPROVIDES)
 			       ? pkg->provides[k]
 			       : pkg->replaces[k]);
-			 if (fnmatch(target, apkg->name, 0) == 0) {
+			 if (fnmatch(target, apkg->name, conf->nocase) == 0) {
 			      opkg_msg(NOTICE, "    %s", pkg->name);
-			      if (strcmp(target, apkg->name) != 0)
+			      if ((conf->nocase ? strcasecmp(target, apkg->name) : strcmp(target, apkg->name)) != 0)
 				   opkg_msg(NOTICE, "\t%s %s\n",
 						   rel_str, apkg->name);
 			      opkg_message(NOTICE, "\n");
@@ -1200,7 +1200,7 @@ opkg_search_cmd(int argc, char **argv)
 
 	  for (iter = str_list_first(installed_files); iter; iter = str_list_next(installed_files, iter)) {
 	       installed_file = (char *)iter->data;
-	       if (fnmatch(argv[0], installed_file, 0)==0)
+	       if (fnmatch(argv[0], installed_file, conf->nocase)==0)
 	            print_pkg(pkg);
 	  }
 
