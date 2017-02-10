@@ -28,6 +28,7 @@
 #include <libgen.h>
 
 #include "libbb.h"
+#include "gzip.h"
 
 #define CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY 1
 #define CONFIG_FEATURE_TAR_GNU_EXTENSIONS
@@ -39,38 +40,15 @@ static char *linkname = NULL;
 
 off_t archive_offset;
 
-#define SEEK_BUF 4096
 static ssize_t
-seek_by_read(FILE* fd, size_t len)
+seek_forward(struct gzip_handle *zh, ssize_t len)
 {
-        ssize_t cc, total = 0;
-        char buf[SEEK_BUF];
+	ssize_t slen = gzip_seek(zh, len);
 
-        while (len) {
-                cc = fread(buf, sizeof(buf[0]),
-                                len > SEEK_BUF ? SEEK_BUF : len,
-                                fd);
+	if (slen == len)
+		archive_offset += len;
 
-                total += cc;
-                len -= cc;
-
-                if(feof(fd) || ferror(fd))
-                        break;
-        }
-        return total;
-}
-
-static void
-seek_sub_file(FILE *fd, const int count)
-{
-	archive_offset += count;
-
-	/* Do not use fseek() on a pipe. It may fail with ESPIPE, leaving the
-	 * stream at an undefined location.
-	 */
-        seek_by_read(fd, count);
-
-	return;
+	return slen;
 }
 
 
@@ -87,7 +65,7 @@ seek_sub_file(FILE *fd, const int count)
  * trailing '/' or else the last dir will be assumed to be the file prefix
  */
 static char *
-extract_archive(FILE *src_stream, FILE *out_stream,
+extract_archive(struct gzip_handle *src_stream, FILE *out_stream,
 		const file_header_t *file_entry, const int function,
 		const char *prefix,
 		int *err)
@@ -129,14 +107,14 @@ extract_archive(FILE *src_stream, FILE *out_stream,
 
 	if (function & extract_to_stream) {
 		if (S_ISREG(file_entry->mode)) {
-			*err = copy_file_chunk(src_stream, out_stream, file_entry->size);
+			*err = gzip_copy(src_stream, out_stream, file_entry->size);
 			archive_offset += file_entry->size;
 		}
 	}
 	else if (function & extract_one_to_buffer) {
 		if (S_ISREG(file_entry->mode)) {
 			buffer = (char *) xmalloc(file_entry->size + 1);
-			fread(buffer, 1, file_entry->size, src_stream);
+			gzip_read(src_stream, buffer, file_entry->size);
 			buffer[file_entry->size] = '\0';
 			archive_offset += file_entry->size;
 			goto cleanup;
@@ -156,7 +134,7 @@ extract_archive(FILE *src_stream, FILE *out_stream,
 					*err = -1;
 					error_msg("%s not created: newer or same age file exists", file_entry->name);
 				}
-				seek_sub_file(src_stream, file_entry->size);
+				seek_forward(src_stream, file_entry->size);
 				goto cleanup;
 			}
 		}
@@ -185,11 +163,11 @@ extract_archive(FILE *src_stream, FILE *out_stream,
 				} else {
 					if ((dst_stream = wfopen(full_name, "w")) == NULL) {
 						*err = -1;
-						seek_sub_file(src_stream, file_entry->size);
+						seek_forward(src_stream, file_entry->size);
 						goto cleanup;
 					}
 					archive_offset += file_entry->size;
-					*err = copy_file_chunk(src_stream, dst_stream, file_entry->size);
+					*err = gzip_copy(src_stream, dst_stream, file_entry->size);
 					fclose(dst_stream);
 				}
 				break;
@@ -250,7 +228,7 @@ extract_archive(FILE *src_stream, FILE *out_stream,
 		/* If we arent extracting data we have to skip it,
 		 * if data size is 0 then then just do it anyway
 		 * (saves testing for it) */
-		seek_sub_file(src_stream, file_entry->size);
+		seek_forward(src_stream, file_entry->size);
 	}
 
 	/* extract_list and extract_verbose_list can be used in conjunction
@@ -274,8 +252,8 @@ cleanup:
 }
 
 static char *
-unarchive(FILE *src_stream, FILE *out_stream,
-		file_header_t *(*get_headers)(FILE *),
+unarchive(struct gzip_handle *src_stream, FILE *out_stream,
+		file_header_t *(*get_headers)(struct gzip_handle *),
 		void (*free_headers)(file_header_t *),
 		const int extract_function,
 		const char *prefix,
@@ -329,7 +307,7 @@ unarchive(FILE *src_stream, FILE *out_stream,
 			}
 		} else {
 			/* seek past the data entry */
-			seek_sub_file(src_stream, file_entry->size);
+			seek_forward(src_stream, file_entry->size);
 		}
 		free_headers(file_entry);
 	}
@@ -337,108 +315,9 @@ unarchive(FILE *src_stream, FILE *out_stream,
 	return buffer;
 }
 
-static file_header_t *
-get_header_ar(FILE *src_stream)
-{
-	file_header_t *typed;
-	union {
-		char raw[60];
-	 	struct {
- 			char name[16];
- 			char date[12];
- 			char uid[6];
- 			char gid[6];
- 			char mode[8];
- 			char size[10];
- 			char magic[2];
- 		} formated;
-	} ar;
-	static char *ar_long_names;
-
-	if (fread(ar.raw, 1, 60, src_stream) != 60) {
-		return(NULL);
-	}
-	archive_offset += 60;
-	/* align the headers based on the header magic */
-	if ((ar.formated.magic[0] != '`') || (ar.formated.magic[1] != '\n')) {
-		/* some version of ar, have an extra '\n' after each data entry,
-		 * this puts the next header out by 1 */
-		if (ar.formated.magic[1] != '`') {
-			error_msg("Invalid magic");
-			return(NULL);
-		}
-		/* read the next char out of what would be the data section,
-		 * if its a '\n' then it is a valid header offset by 1*/
-		archive_offset++;
-		if (fgetc(src_stream) != '\n') {
-			error_msg("Invalid magic");
-			return(NULL);
-		}
-		/* fix up the header, we started reading 1 byte too early */
-		/* raw_header[60] wont be '\n' as it should, but it doesnt matter */
-		memmove(ar.raw, &ar.raw[1], 59);
-	}
-
-	typed = (file_header_t *) xcalloc(1, sizeof(file_header_t));
-
-	typed->size = (size_t) atoi(ar.formated.size);
-	/* long filenames have '/' as the first character */
-	if (ar.formated.name[0] == '/') {
-		if (ar.formated.name[1] == '/') {
-			/* If the second char is a '/' then this entries data section
-			 * stores long filename for multiple entries, they are stored
-			 * in static variable long_names for use in future entries */
-			ar_long_names = (char *) xrealloc(ar_long_names, typed->size);
-			fread(ar_long_names, 1, typed->size, src_stream);
-			archive_offset += typed->size;
-			/* This ar entries data section only contained filenames for other records
-			 * they are stored in the static ar_long_names for future reference */
-			return (get_header_ar(src_stream)); /* Return next header */
-		} else if (ar.formated.name[1] == ' ') {
-			/* This is the index of symbols in the file for compilers */
-			seek_sub_file(src_stream, typed->size);
-			return (get_header_ar(src_stream)); /* Return next header */
-		} else {
-			/* The number after the '/' indicates the offset in the ar data section
-			(saved in variable long_name) that conatains the real filename */
-			if (!ar_long_names) {
-				error_msg("Cannot resolve long file name");
-				return (NULL);
-			}
-			typed->name = xstrdup(ar_long_names + atoi(&ar.formated.name[1]));
-		}
-	} else {
-		/* short filenames */
-		typed->name = xcalloc(1, 16);
-		strncpy(typed->name, ar.formated.name, 16);
-	}
-	typed->name[strcspn(typed->name, " /")]='\0';
-
-	/* convert the rest of the now valid char header to its typed struct */
-	parse_mode(ar.formated.mode, &typed->mode);
-	typed->mtime = atoi(ar.formated.date);
-	typed->uid = atoi(ar.formated.uid);
-	typed->gid = atoi(ar.formated.gid);
-
-	return(typed);
-}
-
-static void
-free_header_ar(file_header_t *ar_entry)
-{
-	if (ar_entry == NULL)
-		return;
-
-	free(ar_entry->name);
-	if (ar_entry->link_name)
-		free(ar_entry->link_name);
-
-	free(ar_entry);
-}
-
 
 static file_header_t *
-get_header_tar(FILE *tar_stream)
+get_header_tar(struct gzip_handle *tar_stream)
 {
 	union {
 		unsigned char raw[512];
@@ -467,10 +346,10 @@ get_header_tar(FILE *tar_stream)
 	long sum = 0;
 
 	if (archive_offset % 512 != 0) {
-		seek_sub_file(tar_stream, 512 - (archive_offset % 512));
+		seek_forward(tar_stream, 512 - (archive_offset % 512));
 	}
 
-	if (fread(tar.raw, 1, 512, tar_stream) != 512) {
+	if (gzip_read(tar_stream, tar.raw, 512) != 512) {
 		/* Unfortunately its common for tar files to have all sorts of
 		 * trailing garbage, fail silently */
 //		error_msg("Couldnt read header");
@@ -557,7 +436,7 @@ get_header_tar(FILE *tar_stream)
 # ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	case 'L': {
 			longname = xmalloc(tar_entry->size + 1);
-                        if(fread(longname, tar_entry->size, 1, tar_stream) != 1)
+                        if(gzip_read(tar_stream, longname, tar_entry->size) != tar_entry->size)
                                 return NULL;
 			longname[tar_entry->size] = '\0';
 			archive_offset += tar_entry->size;
@@ -566,7 +445,7 @@ get_header_tar(FILE *tar_stream)
 		}
 	case 'K': {
 			linkname = xmalloc(tar_entry->size + 1);
-                        if(fread(linkname, tar_entry->size, 1, tar_stream) != 1)
+                        if(gzip_read(tar_stream, linkname, tar_entry->size) != tar_entry->size)
                                 return NULL;
 			linkname[tar_entry->size] = '\0';
 			archive_offset += tar_entry->size;
@@ -642,6 +521,9 @@ deb_extract(const char *package_filename, FILE *out_stream,
 	char *ared_file = NULL;
 	char ar_magic[8];
 	int gz_err;
+	struct gzip_handle tar_outer, tar_inner;
+	file_header_t *tar_header;
+	ssize_t len;
 
 	*err = 0;
 
@@ -672,111 +554,44 @@ deb_extract(const char *package_filename, FILE *out_stream,
 	/* set the buffer size */
 	setvbuf(deb_stream, NULL, _IOFBF, 0x8000);
 
-	/* check ar magic */
-	fread(ar_magic, 1, 8, deb_stream);
+	memset(&tar_outer, 0, sizeof(tar_outer));
+	tar_outer.file = deb_stream;
+	gzip_exec(&tar_outer, NULL);
 
-	if (strncmp(ar_magic,"!<arch>",7) == 0) {
-		archive_offset = 8;
+	/* walk through outer tar file to find ared_file */
+	while ((tar_header = get_header_tar(&tar_outer)) != NULL) {
+                    int name_offset = 0;
+                    if (strncmp(tar_header->name, "./", 2) == 0)
+                            name_offset = 2;
 
-		while ((ar_header = get_header_ar(deb_stream)) != NULL) {
-			if (strcmp(ared_file, ar_header->name) == 0) {
-				int gunzip_pid = 0;
-				FILE *uncompressed_stream;
-				/* open a stream of decompressed data */
-				uncompressed_stream = gz_open(deb_stream, &gunzip_pid);
-				if (uncompressed_stream == NULL) {
-					*err = -1;
-					goto cleanup;
-				}
+		if (strcmp(ared_file, tar_header->name+name_offset) == 0) {
+			memset(&tar_inner, 0, sizeof(tar_inner));
+			tar_inner.gzip = &tar_outer;
+			gzip_exec(&tar_inner, NULL);
 
-				archive_offset = 0;
-				output_buffer = unarchive(uncompressed_stream,
-						out_stream, get_header_tar,
-						free_header_tar,
-						extract_function, prefix,
-						file_list, err);
-				fclose(uncompressed_stream);
-				gz_err = gz_close(gunzip_pid);
-				if (gz_err)
-					*err = -1;
-				free_header_ar(ar_header);
-				break;
-			}
-			if (fseek(deb_stream, ar_header->size, SEEK_CUR) == -1) {
-				opkg_perror(ERROR, "Couldn't fseek into %s", package_filename);
-				*err = -1;
-				free_header_ar(ar_header);
-				goto cleanup;
-			}
-			free_header_ar(ar_header);
-		}
-		goto cleanup;
-	} else if (strncmp(ar_magic, "\037\213", 2) == 0) {
-		/* it's a gz file, let's assume it's an opkg */
-		int unzipped_opkg_pid;
-		FILE *unzipped_opkg_stream;
-		file_header_t *tar_header;
-		archive_offset = 0;
-		if (fseek(deb_stream, 0, SEEK_SET) == -1) {
-			opkg_perror(ERROR, "Couldn't fseek into %s", package_filename);
-			*err = -1;
-			goto cleanup;
-		}
-		unzipped_opkg_stream = gz_open(deb_stream, &unzipped_opkg_pid);
-		if (unzipped_opkg_stream == NULL) {
-			*err = -1;
-			goto cleanup;
-		}
+			archive_offset = 0;
 
-		/* walk through outer tar file to find ared_file */
-		while ((tar_header = get_header_tar(unzipped_opkg_stream)) != NULL) {
-                        int name_offset = 0;
-                        if (strncmp(tar_header->name, "./", 2) == 0)
-                                name_offset = 2;
-			if (strcmp(ared_file, tar_header->name+name_offset) == 0) {
-				int gunzip_pid = 0;
-				FILE *uncompressed_stream;
-				/* open a stream of decompressed data */
-				uncompressed_stream = gz_open(unzipped_opkg_stream, &gunzip_pid);
-				if (uncompressed_stream == NULL) {
-					*err = -1;
-					goto cleanup;
-				}
-				archive_offset = 0;
+			output_buffer = unarchive(&tar_inner,
+						  out_stream,
+						  get_header_tar,
+						  free_header_tar,
+						  extract_function,
+						  prefix,
+						  file_list,
+						  err);
 
-				output_buffer = unarchive(uncompressed_stream,
-							  out_stream,
-							  get_header_tar,
-							  free_header_tar,
-							  extract_function,
-							  prefix,
-							  file_list,
-							  err);
-
-				free_header_tar(tar_header);
-				fclose(uncompressed_stream);
-				gz_err = gz_close(gunzip_pid);
-				if (gz_err)
-					*err = -1;
-				break;
-			}
-			seek_sub_file(unzipped_opkg_stream, tar_header->size);
 			free_header_tar(tar_header);
+			gzip_close(&tar_inner);
+			break;
 		}
-		fclose(unzipped_opkg_stream);
-		gz_err = gz_close(unzipped_opkg_pid);
-		if (gz_err)
-			*err = -1;
 
-		goto cleanup;
-	} else {
-		*err = -1;
-		error_msg("%s: invalid magic", package_filename);
+		seek_forward(&tar_outer, tar_header->size);
+		free_header_tar(tar_header);
 	}
 
 cleanup:
-	if (deb_stream)
-		fclose(deb_stream);
+	gzip_close(&tar_outer);
+
 	if (file_list)
 		free(file_list);
 

@@ -3,4 +3,4 @@ bin_PROGRAMS = opkg-cl
 
 opkg_cl_SOURCES = opkg-cl.c
 opkg_cl_LDADD = $(top_builddir)/libopkg/libopkg.a \
-                $(top_builddir)/libbb/libbb.a $(CURL_LIBS) $(GPGME_LIBS) $(OPENSSL_LIBS) $(PATHFINDER_LIBS)
+                $(top_builddir)/libbb/libbb.a $(CURL_LIBS) $(GPGME_LIBS) $(OPENSSL_LIBS) $(PATHFINDER_LIBS) -lpthread

@@ -4,9 +4,8 @@ ALL_CFLAGS=-g -O -Wall -DHOST_CPU_STR=\"$(HOST_CPU)\" -DBUILD_CPU=@build_cpu@
 
 noinst_LIBRARIES = libbb.a
 
-libbb_a_SOURCES = gz_open.c \
+libbb_a_SOURCES = \
 	libbb.h \
-	unzip.c \
 	wfopen.c \
 	unarchive.c \
 	copy_file.c \
@@ -20,7 +19,8 @@ libbb_a_SOURCES = gz_open.c \
 	parse_mode.c \
 	time_string.c \
 	all_read.c \
-	mode_string.c
+	mode_string.c \
+	gzip.c
 
 libbb_la_CFLAGS = $(ALL_CFLAGS)
 #libbb_la_LDFLAGS = -static
