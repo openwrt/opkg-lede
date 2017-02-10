@@ -141,7 +141,7 @@ pkg_hash_add_from_file(const char *file_name,
 			continue;
 		}
 
-		if (!pkg->architecture || !pkg->arch_priority) {
+		if (!pkg_get_string(pkg, PKG_ARCHITECTURE) || !pkg->arch_priority) {
 			char *version_str = pkg_version_str_alloc(pkg);
 			opkg_msg(NOTICE, "Package %s version %s has no "
 				 "valid architecture, ignoring.\n",
@@ -319,8 +319,8 @@ pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 				pkg_t *maybe = vec->pkgs[j];
 				opkg_msg(DEBUG,
 					 "%s arch=%s arch_priority=%d version=%s.\n",
-					 maybe->name, maybe->architecture,
-					 maybe->arch_priority, maybe->version);
+					 maybe->name, pkg_get_string(maybe, PKG_ARCHITECTURE),
+					 maybe->arch_priority, pkg_get_string(maybe, PKG_VERSION));
 				/* We make sure not to add the same package twice. Need to search for the reason why
 				   they show up twice sometimes. */
 				if ((maybe->arch_priority > 0)
@@ -359,7 +359,7 @@ pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 		pkg_t *matching = matching_pkgs->pkgs[i];
 		if (constraint_fcn(matching, cdata)) {
 			opkg_msg(DEBUG, "Candidate: %s %s.\n",
-				 matching->name, matching->version);
+				 matching->name, pkg_get_string(matching, PKG_VERSION));
 			good_pkg_by_name = matching;
 			/* It has been provided by hand, so it is what user want */
 			if (matching->provided_by_hand == 1)
@@ -405,8 +405,8 @@ pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 		for (i = 0; i < matching_pkgs->len; i++) {
 			pkg_t *matching = matching_pkgs->pkgs[i];
 			opkg_msg(INFO, "%s %s %s\n",
-				 matching->name, matching->version,
-				 matching->architecture);
+				 matching->name, pkg_get_string(matching, PKG_VERSION),
+				 pkg_get_string(matching, PKG_ARCHITECTURE));
 		}
 	}
 
@@ -431,8 +431,8 @@ pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 	}
 	if (priorized_matching) {
 		opkg_msg(INFO, "Using priorized matching %s %s %s.\n",
-			 priorized_matching->name, priorized_matching->version,
-			 priorized_matching->architecture);
+			 priorized_matching->name, pkg_get_string(priorized_matching, PKG_VERSION),
+			 pkg_get_string(priorized_matching, PKG_ARCHITECTURE));
 		return priorized_matching;
 	}
 	if (nmatching > 1) {
@@ -442,8 +442,8 @@ pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 	}
 	if (latest_matching) {
 		opkg_msg(INFO, "Using latest matching %s %s %s.\n",
-			 latest_matching->name, latest_matching->version,
-			 latest_matching->architecture);
+			 latest_matching->name, pkg_get_string(latest_matching, PKG_VERSION),
+			 pkg_get_string(latest_matching, PKG_ARCHITECTURE));
 		return latest_matching;
 	}
 	return NULL;

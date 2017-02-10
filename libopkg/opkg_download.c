@@ -253,7 +253,9 @@ int opkg_download_pkg(pkg_t * pkg, const char *dir)
 {
 	int err;
 	char *url;
+	char *local_filename;
 	char *stripped_filename;
+	char *filename;
 
 	if (pkg->src == NULL) {
 		opkg_msg(ERROR,
@@ -261,27 +263,31 @@ int opkg_download_pkg(pkg_t * pkg, const char *dir)
 			 pkg->name);
 		return -1;
 	}
-	if (pkg->filename == NULL) {
+
+	filename = pkg_get_string(pkg, PKG_FILENAME);
+
+	if (filename == NULL) {
 		opkg_msg(ERROR,
 			 "Package %s does not have a valid filename field.\n",
 			 pkg->name);
 		return -1;
 	}
 
-	sprintf_alloc(&url, "%s/%s", pkg->src->value, pkg->filename);
+	sprintf_alloc(&url, "%s/%s", pkg->src->value, filename);
 
-	/* The pkg->filename might be something like
+	/* The filename might be something like
 	   "../../foo.opk". While this is correct, and exactly what we
 	   want to use to construct url above, here we actually need to
 	   use just the filename part, without any directory. */
 
-	stripped_filename = strrchr(pkg->filename, '/');
+	stripped_filename = strrchr(filename, '/');
 	if (!stripped_filename)
-		stripped_filename = pkg->filename;
+		stripped_filename = filename;
 
-	sprintf_alloc(&pkg->local_filename, "%s/%s", dir, stripped_filename);
+	sprintf_alloc(&local_filename, "%s/%s", dir, stripped_filename);
+	pkg_set_string(pkg, PKG_LOCAL_FILENAME, local_filename);
 
-	err = opkg_download_cache(url, pkg->local_filename, NULL, NULL);
+	err = opkg_download_cache(url, local_filename, NULL, NULL);
 	free(url);
 
 	return err;
@@ -323,7 +329,7 @@ int opkg_prepare_url_for_install(const char *url, char **namep)
 		if (err)
 			return err;
 		opkg_msg(DEBUG2, "Package %s provided by hand (%s).\n",
-			 pkg->name, pkg->local_filename);
+			 pkg->name, pkg_get_string(pkg, PKG_LOCAL_FILENAME));
 		pkg->provided_by_hand = 1;
 
 	} else {

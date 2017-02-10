@@ -52,27 +52,29 @@ void pkg_vec_insert_merge(pkg_vec_t * vec, pkg_t * pkg, int set_status)
 {
 	int i;
 	int found = 0;
+	char *pkg_version = pkg_get_string(pkg, PKG_VERSION);
+	char *pkg_architecture = pkg_get_string(pkg, PKG_ARCHITECTURE);
+	char *vec_architecture;
 
 	/* look for a duplicate pkg by name, version, and architecture */
 	for (i = 0; i < vec->len; i++) {
+		vec_architecture = pkg_get_string(vec->pkgs[i], PKG_ARCHITECTURE);
+
 		opkg_msg(DEBUG2, "%s %s arch=%s vs. %s %s arch=%s.\n",
-			 pkg->name, pkg->version, pkg->architecture,
-			 vec->pkgs[i]->name, vec->pkgs[i]->version,
-			 vec->pkgs[i]->architecture);
+			 pkg->name, pkg_version, pkg_architecture,
+			 vec->pkgs[i]->name, pkg_get_string(vec->pkgs[i], PKG_VERSION),
+			 vec_architecture);
 		/* if the name,ver,arch matches, or the name matches and the
 		 * package is marked deinstall/hold  */
 		if ((!strcmp(pkg->name, vec->pkgs[i]->name))
 		    && ((pkg->state_want == SW_DEINSTALL
 			 && (pkg->state_flag & SF_HOLD))
 			|| ((pkg_compare_versions(pkg, vec->pkgs[i]) == 0)
-			    &&
-			    (!strcmp
-			     (pkg->architecture,
-			      vec->pkgs[i]->architecture))))) {
+			    && (!strcmp(pkg_architecture, vec_architecture))))) {
 			found = 1;
 			opkg_msg(DEBUG2,
 				 "Duplicate for pkg=%s version=%s arch=%s.\n",
-				 pkg->name, pkg->version, pkg->architecture);
+				 pkg->name, pkg_version, pkg_architecture);
 			break;
 		}
 	}
@@ -80,14 +82,14 @@ void pkg_vec_insert_merge(pkg_vec_t * vec, pkg_t * pkg, int set_status)
 	/* we didn't find one, add it */
 	if (!found) {
 		opkg_msg(DEBUG2, "Adding new pkg=%s version=%s arch=%s.\n",
-			 pkg->name, pkg->version, pkg->architecture);
+			 pkg->name, pkg_version, pkg_architecture);
 		pkg_vec_insert(vec, pkg);
 		return;
 	}
 
 	/* update the one that we have */
 	opkg_msg(DEBUG2, "Merging %s %s arch=%s, set_status=%d.\n",
-		 pkg->name, pkg->version, pkg->architecture, set_status);
+		 pkg->name, pkg_version, pkg_architecture, set_status);
 	if (set_status) {
 		/* This is from the status file,
 		 * so need to merge with existing database */

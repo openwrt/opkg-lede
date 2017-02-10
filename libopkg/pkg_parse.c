@@ -59,7 +59,7 @@ static void parse_conffiles(pkg_t * pkg, const char *cstr)
 
 int parse_version(pkg_t * pkg, const char *vstr)
 {
-	char *colon;
+	char *colon, *rev;
 
 	if (strncmp(vstr, "Version:", 8) == 0)
 		vstr += 8;
@@ -70,20 +70,19 @@ int parse_version(pkg_t * pkg, const char *vstr)
 	colon = strchr(vstr, ':');
 	if (colon) {
 		errno = 0;
-		pkg->epoch = strtoul(vstr, NULL, 10);
+		pkg_set_int(pkg, PKG_EPOCH, strtoul(vstr, NULL, 10));
 		if (errno) {
 			opkg_perror(ERROR, "%s: invalid epoch", pkg->name);
 		}
 		vstr = ++colon;
-	} else {
-		pkg->epoch = 0;
 	}
 
-	pkg->version = xstrdup(vstr);
-	pkg->revision = strrchr(pkg->version, '-');
+	rev = strrchr(pkg_set_string(pkg, PKG_VERSION, vstr), '-');
 
-	if (pkg->revision)
-		*pkg->revision++ = '\0';
+	if (rev) {
+		*rev++ = '\0';
+		pkg_set_ptr(pkg, PKG_REVISION, rev);
+	}
 
 	return 0;
 }
@@ -106,6 +105,7 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 
 	/* these flags are a bit hackish... */
 	static int reading_conffiles = 0, reading_description = 0;
+	static char *description = NULL;
 	int ret = 0;
 
 	/* Exclude globally masked fields. */
@@ -117,9 +117,9 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 	switch (*line) {
 	case 'A':
 		if ((mask & PFM_ARCHITECTURE) && is_field("Architecture", line)) {
-			pkg->architecture = parse_simple("Architecture", line);
-			pkg->arch_priority =
-			    get_arch_priority(pkg->architecture);
+			pkg->arch_priority = get_arch_priority(
+				pkg_set_string(pkg, PKG_ARCHITECTURE, line + strlen("Architecture") + 1));
+
 		} else if ((mask & PFM_AUTO_INSTALLED)
 			   && is_field("Auto-Installed", line)) {
 			char *tmp = parse_simple("Auto-Installed", line);
@@ -142,7 +142,7 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 
 	case 'D':
 		if ((mask & PFM_DESCRIPTION) && is_field("Description", line)) {
-			pkg->description = parse_simple("Description", line);
+			description = parse_simple("Description", line);
 			reading_conffiles = 0;
 			reading_description = 1;
 			goto dont_reset_flags;
@@ -162,7 +162,7 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 
 	case 'F':
 		if ((mask & PFM_FILENAME) && is_field("Filename", line))
-			pkg->filename = parse_simple("Filename", line);
+			pkg_set_string(pkg, PKG_FILENAME, line + strlen("Filename") + 1);
 		break;
 
 	case 'I':
@@ -181,21 +181,21 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 
 	case 'M':
 		if ((mask & PFM_MD5SUM) && is_field("MD5sum:", line))
-			pkg->md5sum = parse_simple("MD5sum", line);
+			pkg_set_string(pkg, PKG_MD5SUM, line + strlen("MD5sum") + 1);
 		/* The old opkg wrote out status files with the wrong
 		 * case for MD5sum, let's parse it either way */
 		else if ((mask & PFM_MD5SUM) && is_field("MD5Sum:", line))
-			pkg->md5sum = parse_simple("MD5Sum", line);
+			pkg_set_string(pkg, PKG_MD5SUM, line + strlen("MD5Sum") + 1);
 		else if ((mask & PFM_MAINTAINER)
 			 && is_field("Maintainer", line))
-			pkg->maintainer = parse_simple("Maintainer", line);
+			pkg_set_string(pkg, PKG_MAINTAINER, line + strlen("Maintainer") + 1);
 		break;
 
 	case 'P':
 		if ((mask & PFM_PACKAGE) && is_field("Package", line))
 			pkg->name = parse_simple("Package", line);
 		else if ((mask & PFM_PRIORITY) && is_field("Priority", line))
-			pkg->priority = parse_simple("Priority", line);
+			pkg_set_string(pkg, PKG_PRIORITY, line + strlen("Priority") + 1);
 		else if ((mask & PFM_PROVIDES) && is_field("Provides", line))
 			pkg->provides_str =
 			    parse_list(line, &pkg->provides_count, ',', 0);
@@ -217,17 +217,17 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 
 	case 'S':
 		if ((mask & PFM_SECTION) && is_field("Section", line))
-			pkg->section = parse_simple("Section", line);
+			pkg_set_string(pkg, PKG_SECTION, line + strlen("Section") + 1);
 #ifdef HAVE_SHA256
 		else if ((mask & PFM_SHA256SUM) && is_field("SHA256sum", line))
-			pkg->sha256sum = parse_simple("SHA256sum", line);
+			pkg_set_string(pkg, PKG_SHA256SUM, line + strlen("SHA256sum") + 1);
 #endif
 		else if ((mask & PFM_SIZE) && is_field("Size", line)) {
 			char *tmp = parse_simple("Size", line);
 			pkg->size = strtoul(tmp, NULL, 0);
 			free(tmp);
 		} else if ((mask & PFM_SOURCE) && is_field("Source", line))
-			pkg->source = parse_simple("Source", line);
+			pkg_set_string(pkg, PKG_SOURCE, line + strlen("Source") + 1);
 		else if ((mask & PFM_STATUS) && is_field("Status", line))
 			parse_status(pkg, line);
 		else if ((mask & PFM_SUGGESTS) && is_field("Suggests", line))
@@ -237,7 +237,7 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 
 	case 'T':
 		if ((mask & PFM_TAGS) && is_field("Tags", line))
-			pkg->tags = parse_simple("Tags", line);
+			pkg_set_string(pkg, PKG_TAGS, line + strlen("Tags") + 1);
 		break;
 
 	case 'V':
@@ -248,19 +248,17 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 	case ' ':
 		if ((mask & PFM_DESCRIPTION) && reading_description) {
 			if (isatty(1)) {
-				pkg->description = xrealloc(pkg->description,
-							    strlen(pkg->
-								   description)
+				description = xrealloc(description,
+							    strlen(description)
 							    + 1 + strlen(line) +
 							    1);
-				strcat(pkg->description, "\n");
+				strcat(description, "\n");
 			} else {
-				pkg->description = xrealloc(pkg->description,
-							    strlen(pkg->
-								   description)
+				description = xrealloc(description,
+							    strlen(description)
 							    + 1 + strlen(line));
 			}
-			strcat(pkg->description, (line));
+			strcat(description, (line));
 			goto dont_reset_flags;
 		} else if ((mask & PFM_CONFFILES) && reading_conffiles) {
 			parse_conffiles(pkg, line);
@@ -276,7 +274,13 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 		}
 	}
 
-	reading_description = 0;
+	if (reading_description && description) {
+		pkg_set_string(pkg, PKG_DESCRIPTION, description);
+		free(description);
+		reading_description = 0;
+		description = NULL;
+	}
+
 	reading_conffiles = 0;
 
 dont_reset_flags:

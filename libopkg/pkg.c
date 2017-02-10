@@ -74,15 +74,8 @@ static const enum_map_t pkg_state_status_map[] = {
 static void pkg_init(pkg_t * pkg)
 {
 	pkg->name = NULL;
-	pkg->epoch = 0;
-	pkg->version = NULL;
-	pkg->revision = NULL;
 	pkg->dest = NULL;
 	pkg->src = NULL;
-	pkg->architecture = NULL;
-	pkg->maintainer = NULL;
-	pkg->section = NULL;
-	pkg->description = NULL;
 	pkg->state_want = SW_UNKNOWN;
 	pkg->state_flag = SF_OK;
 	pkg->state_status = SS_NOT_INSTALLED;
@@ -107,22 +100,16 @@ static void pkg_init(pkg_t * pkg)
 	pkg->pre_depends_str = NULL;
 	pkg->provides_count = 0;
 	pkg->provides = NULL;
-	pkg->filename = NULL;
-	pkg->local_filename = NULL;
 	pkg->tmp_unpack_dir = NULL;
-	pkg->md5sum = NULL;
-#if defined HAVE_SHA256
-	pkg->sha256sum = NULL;
-#endif
 	pkg->size = 0;
 	pkg->installed_size = 0;
-	pkg->priority = NULL;
-	pkg->source = NULL;
 	conffile_list_init(&pkg->conffiles);
 	pkg->installed_files = NULL;
 	pkg->installed_files_ref_cnt = 0;
 	pkg->essential = 0;
 	pkg->provided_by_hand = 0;
+
+	blob_buf_init(&pkg->blob, 0);
 }
 
 pkg_t *pkg_new(void)
@@ -134,6 +121,66 @@ pkg_t *pkg_new(void)
 
 	return pkg;
 }
+
+void *pkg_set_raw(pkg_t *pkg, int id, const void *val, size_t len)
+{
+	int rem;
+	struct blob_attr *cur;
+
+	blob_for_each_attr(cur, pkg->blob.head, rem) {
+		if (blob_id(cur) == id) {
+			if (blob_len(cur) < len) {
+				fprintf(stderr, "ERROR: truncating field %d <%p> to %d byte",
+				        id, val, blob_len(cur));
+			}
+			memcpy(blob_data(cur), val, blob_len(cur));
+			return blob_data(cur);
+		}
+	}
+
+	cur = blob_put(&pkg->blob, id, val, len);
+	return cur ? blob_data(cur) : NULL;
+}
+
+void *pkg_get_raw(const pkg_t * pkg, int id)
+{
+	int rem;
+	struct blob_attr *cur;
+
+	blob_for_each_attr(cur, pkg->blob.head, rem)
+		if (blob_id(cur) == id)
+			return blob_data(cur);
+
+	return NULL;
+}
+
+char *pkg_set_string(pkg_t *pkg, int id, const char *s)
+{
+	size_t len;
+	char *p;
+
+	if (!s)
+		return NULL;
+
+	len = strlen(s);
+
+	while (isspace(*s)) {
+		s++;
+		len--;
+	}
+
+	while (len > 0 && isspace(s[len - 1]))
+		len--;
+
+	if (!len)
+		return NULL;
+
+	p = pkg_set_raw(pkg, id, s, len + 1);
+	p[len] = 0;
+
+	return p;
+}
+
 
 static void compound_depend_deinit(compound_depend_t * depends)
 {
@@ -155,34 +202,10 @@ void pkg_deinit(pkg_t * pkg)
 		free(pkg->name);
 	pkg->name = NULL;
 
-	pkg->epoch = 0;
-
-	if (pkg->version)
-		free(pkg->version);
-	pkg->version = NULL;
-	/* revision shares storage with version, so don't free */
-	pkg->revision = NULL;
-
 	/* owned by opkg_conf_t */
 	pkg->dest = NULL;
 	/* owned by opkg_conf_t */
 	pkg->src = NULL;
-
-	if (pkg->architecture)
-		free(pkg->architecture);
-	pkg->architecture = NULL;
-
-	if (pkg->maintainer)
-		free(pkg->maintainer);
-	pkg->maintainer = NULL;
-
-	if (pkg->section)
-		free(pkg->section);
-	pkg->section = NULL;
-
-	if (pkg->description)
-		free(pkg->description);
-	pkg->description = NULL;
 
 	pkg->state_want = SW_UNKNOWN;
 	pkg->state_flag = SF_OK;
@@ -216,38 +239,12 @@ void pkg_deinit(pkg_t * pkg)
 	pkg->pre_depends_count = 0;
 	pkg->provides_count = 0;
 
-	if (pkg->filename)
-		free(pkg->filename);
-	pkg->filename = NULL;
-
-	if (pkg->local_filename)
-		free(pkg->local_filename);
-	pkg->local_filename = NULL;
-
 	/* CLEANUP: It'd be nice to pullin the cleanup function from
 	   opkg_install.c here. See comment in
 	   opkg_install.c:cleanup_temporary_files */
 	if (pkg->tmp_unpack_dir)
 		free(pkg->tmp_unpack_dir);
 	pkg->tmp_unpack_dir = NULL;
-
-	if (pkg->md5sum)
-		free(pkg->md5sum);
-	pkg->md5sum = NULL;
-
-#if defined HAVE_SHA256
-	if (pkg->sha256sum)
-		free(pkg->sha256sum);
-	pkg->sha256sum = NULL;
-#endif
-
-	if (pkg->priority)
-		free(pkg->priority);
-	pkg->priority = NULL;
-
-	if (pkg->source)
-		free(pkg->source);
-	pkg->source = NULL;
 
 	conffile_list_deinit(&pkg->conffiles);
 
@@ -258,9 +255,7 @@ void pkg_deinit(pkg_t * pkg)
 	pkg_free_installed_files(pkg);
 	pkg->essential = 0;
 
-	if (pkg->tags)
-		free(pkg->tags);
-	pkg->tags = NULL;
+	blob_buf_free(&pkg->blob);
 }
 
 int pkg_init_from_file(pkg_t * pkg, const char *filename)
@@ -271,7 +266,7 @@ int pkg_init_from_file(pkg_t * pkg, const char *filename)
 
 	pkg_init(pkg);
 
-	pkg->local_filename = xstrdup(filename);
+	pkg_set_string(pkg, PKG_LOCAL_FILENAME, filename);
 
 	tmp = xstrdup(filename);
 	sprintf_alloc(&control_path, "%s/%s.control.XXXXXX",
@@ -333,16 +328,16 @@ int pkg_merge(pkg_t * oldpkg, pkg_t * newpkg)
 		oldpkg->src = newpkg->src;
 	if (!oldpkg->dest)
 		oldpkg->dest = newpkg->dest;
-	if (!oldpkg->architecture)
-		oldpkg->architecture = xstrdup(newpkg->architecture);
+	if (!pkg_get_string(oldpkg, PKG_ARCHITECTURE))
+		pkg_set_string(oldpkg, PKG_ARCHITECTURE, pkg_get_string(newpkg, PKG_ARCHITECTURE));
 	if (!oldpkg->arch_priority)
 		oldpkg->arch_priority = newpkg->arch_priority;
-	if (!oldpkg->section)
-		oldpkg->section = xstrdup(newpkg->section);
-	if (!oldpkg->maintainer)
-		oldpkg->maintainer = xstrdup(newpkg->maintainer);
-	if (!oldpkg->description)
-		oldpkg->description = xstrdup(newpkg->description);
+	if (!pkg_get_string(oldpkg, PKG_SECTION))
+		pkg_set_string(oldpkg, PKG_SECTION, pkg_get_string(newpkg, PKG_SECTION));
+	if (!pkg_get_string(oldpkg, PKG_MAINTAINER))
+		pkg_set_string(oldpkg, PKG_MAINTAINER, pkg_get_string(newpkg, PKG_MAINTAINER));
+	if (!pkg_get_string(oldpkg, PKG_DESCRIPTION))
+		pkg_set_string(oldpkg, PKG_DESCRIPTION, pkg_get_string(newpkg, PKG_DESCRIPTION));
 
 	if (!oldpkg->depends_count && !oldpkg->pre_depends_count
 	    && !oldpkg->recommends_count && !oldpkg->suggests_count) {
@@ -388,26 +383,24 @@ int pkg_merge(pkg_t * oldpkg, pkg_t * newpkg)
 		newpkg->replaces = NULL;
 	}
 
-	if (!oldpkg->filename)
-		oldpkg->filename = xstrdup(newpkg->filename);
-	if (!oldpkg->local_filename)
-		oldpkg->local_filename = xstrdup(newpkg->local_filename);
+	if (!pkg_get_string(oldpkg, PKG_FILENAME))
+		pkg_set_string(oldpkg, PKG_FILENAME, pkg_get_string(newpkg, PKG_FILENAME));
+	if (!pkg_get_string(oldpkg, PKG_LOCAL_FILENAME))
+		pkg_set_string(oldpkg, PKG_LOCAL_FILENAME, pkg_get_string(newpkg, PKG_LOCAL_FILENAME));
 	if (!oldpkg->tmp_unpack_dir)
 		oldpkg->tmp_unpack_dir = xstrdup(newpkg->tmp_unpack_dir);
-	if (!oldpkg->md5sum)
-		oldpkg->md5sum = xstrdup(newpkg->md5sum);
-#if defined HAVE_SHA256
-	if (!oldpkg->sha256sum)
-		oldpkg->sha256sum = xstrdup(newpkg->sha256sum);
-#endif
+	if (!pkg_get_string(oldpkg, PKG_MD5SUM))
+		pkg_set_string(oldpkg, PKG_MD5SUM, pkg_get_string(newpkg, PKG_MD5SUM));
+	if (!pkg_get_string(oldpkg, PKG_SHA256SUM))
+		pkg_set_string(oldpkg, PKG_SHA256SUM, pkg_get_string(newpkg, PKG_SHA256SUM));
 	if (!oldpkg->size)
 		oldpkg->size = newpkg->size;
 	if (!oldpkg->installed_size)
 		oldpkg->installed_size = newpkg->installed_size;
-	if (!oldpkg->priority)
-		oldpkg->priority = xstrdup(newpkg->priority);
-	if (!oldpkg->source)
-		oldpkg->source = xstrdup(newpkg->source);
+	if (!pkg_get_string(oldpkg, PKG_PRIORITY))
+		pkg_set_string(oldpkg, PKG_PRIORITY, pkg_get_string(newpkg, PKG_PRIORITY));
+	if (!pkg_get_string(oldpkg, PKG_SOURCE))
+		pkg_set_string(oldpkg, PKG_SOURCE, pkg_get_string(newpkg, PKG_SOURCE));
 
 	if (nv_pair_list_empty(&oldpkg->conffiles)) {
 		list_splice_init(&newpkg->conffiles.head,
@@ -593,6 +586,7 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 {
 	int i, j;
 	char *str;
+	const char *p;
 	int depends_count = pkg->pre_depends_count +
 	    pkg->depends_count + pkg->recommends_count + pkg->suggests_count;
 
@@ -604,9 +598,10 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 	case 'a':
 	case 'A':
 		if (strcasecmp(field, "Architecture") == 0) {
-			if (pkg->architecture) {
+			p = pkg_get_string(pkg, PKG_ARCHITECTURE);
+			if (p) {
 				fprintf(fp, "Architecture: %s\n",
-					pkg->architecture);
+					p);
 			}
 		} else if (strcasecmp(field, "Auto-Installed") == 0) {
 			if (pkg->auto_installed)
@@ -674,9 +669,10 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 				fprintf(fp, "\n");
 			}
 		} else if (strcasecmp(field, "Description") == 0) {
-			if (pkg->description) {
+			p = pkg_get_string(pkg, PKG_DESCRIPTION);
+			if (p) {
 				fprintf(fp, "Description: %s\n",
-					pkg->description);
+					p);
 			}
 		} else {
 			goto UNKNOWN_FMT_FIELD;
@@ -690,8 +686,9 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 		break;
 	case 'f':
 	case 'F':
-		if (pkg->filename) {
-			fprintf(fp, "Filename: %s\n", pkg->filename);
+		p = pkg_get_string(pkg, PKG_FILENAME);
+		if (p) {
+			fprintf(fp, "Filename: %s\n", p);
 		}
 		break;
 	case 'i':
@@ -708,13 +705,14 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 	case 'm':
 	case 'M':
 		if (strcasecmp(field, "Maintainer") == 0) {
-			if (pkg->maintainer) {
-				fprintf(fp, "Maintainer: %s\n",
-					pkg->maintainer);
+			p = pkg_get_string(pkg, PKG_MAINTAINER);
+			if (p) {
+				fprintf(fp, "Maintainer: %s\n", p);
 			}
 		} else if (strcasecmp(field, "MD5sum") == 0) {
-			if (pkg->md5sum) {
-				fprintf(fp, "MD5Sum: %s\n", pkg->md5sum);
+			p = pkg_get_string(pkg, PKG_MD5SUM);
+			if (p) {
+				fprintf(fp, "MD5Sum: %s\n", p);
 			}
 		} else {
 			goto UNKNOWN_FMT_FIELD;
@@ -725,7 +723,7 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 		if (strcasecmp(field, "Package") == 0) {
 			fprintf(fp, "Package: %s\n", pkg->name);
 		} else if (strcasecmp(field, "Priority") == 0) {
-			fprintf(fp, "Priority: %s\n", pkg->priority);
+			fprintf(fp, "Priority: %s\n", pkg_get_string(pkg, PKG_PRIORITY));
 		} else if (strcasecmp(field, "Provides") == 0) {
 			if (pkg->provides_count > 1) {
 				fprintf(fp, "Provides:");
@@ -771,13 +769,15 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 	case 's':
 	case 'S':
 		if (strcasecmp(field, "Section") == 0) {
-			if (pkg->section) {
-				fprintf(fp, "Section: %s\n", pkg->section);
+			p = pkg_get_string(pkg, PKG_SECTION);
+			if (p) {
+				fprintf(fp, "Section: %s\n", p);
 			}
 #if defined HAVE_SHA256
 		} else if (strcasecmp(field, "SHA256sum") == 0) {
-			if (pkg->sha256sum) {
-				fprintf(fp, "SHA256sum: %s\n", pkg->sha256sum);
+			p = pkg_get_string(pkg, PKG_SHA256SUM);
+			if (p) {
+				fprintf(fp, "SHA256sum: %s\n", p);
 			}
 #endif
 		} else if (strcasecmp(field, "Size") == 0) {
@@ -785,8 +785,9 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 				fprintf(fp, "Size: %ld\n", pkg->size);
 			}
 		} else if (strcasecmp(field, "Source") == 0) {
-			if (pkg->source) {
-				fprintf(fp, "Source: %s\n", pkg->source);
+			p = pkg_get_string(pkg, PKG_SOURCE);
+			if (p) {
+				fprintf(fp, "Source: %s\n", p);
 			}
 		} else if (strcasecmp(field, "Status") == 0) {
 			char *pflag = pkg_state_flag_to_str(pkg->state_flag);
@@ -816,8 +817,9 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 	case 't':
 	case 'T':
 		if (strcasecmp(field, "Tags") == 0) {
-			if (pkg->tags) {
-				fprintf(fp, "Tags: %s\n", pkg->tags);
+			p = pkg_get_string(pkg, PKG_TAGS);
+			if (p) {
+				fprintf(fp, "Tags: %s\n", p);
 			}
 		}
 		break;
@@ -944,22 +946,28 @@ static int verrevcmp(const char *val, const char *ref)
 
 int pkg_compare_versions(const pkg_t * pkg, const pkg_t * ref_pkg)
 {
+	unsigned int epoch1 = (unsigned int) pkg_get_int(pkg, PKG_EPOCH);
+	unsigned int epoch2 = (unsigned int) pkg_get_int(ref_pkg, PKG_EPOCH);
+	char *revision1 = pkg_get_ptr(pkg, PKG_REVISION);
+	char *revision2 = pkg_get_ptr(ref_pkg, PKG_REVISION);
+	const char *version1 = pkg_get_string(pkg, PKG_VERSION);
+	const char *version2 = pkg_get_string(ref_pkg, PKG_VERSION);
 	int r;
 
-	if (pkg->epoch > ref_pkg->epoch) {
+	if (epoch1 > epoch2) {
 		return 1;
 	}
 
-	if (pkg->epoch < ref_pkg->epoch) {
+	if (epoch1 < epoch2) {
 		return -1;
 	}
 
-	r = verrevcmp(pkg->version, ref_pkg->version);
+	r = verrevcmp(version1, version2);
 	if (r) {
 		return r;
 	}
 
-	r = verrevcmp(pkg->revision, ref_pkg->revision);
+	r = verrevcmp(revision1, revision2);
 	if (r) {
 		return r;
 	}
@@ -999,8 +1007,8 @@ int pkg_version_satisfied(pkg_t * it, pkg_t * ref, const char *op)
 
 int pkg_name_version_and_architecture_compare(const void *p1, const void *p2)
 {
-	const pkg_t *a = *(const pkg_t **)p1;
-	const pkg_t *b = *(const pkg_t **)p2;
+	const pkg_t * a = *(const pkg_t **)p1;
+	const pkg_t * b = *(const pkg_t **)p2;
 	int namecmp;
 	int vercmp;
 	if (!a->name || !b->name) {
@@ -1042,21 +1050,26 @@ int abstract_pkg_name_compare(const void *p1, const void *p2)
 
 char *pkg_version_str_alloc(pkg_t * pkg)
 {
-	char *version;
+	const char *verstr;
+	char *version, *revptr;
+	unsigned int epoch = (unsigned int) pkg_get_int(pkg, PKG_EPOCH);
 
-	if (pkg->epoch) {
-		if (pkg->revision)
+	revptr = pkg_get_ptr(pkg, PKG_REVISION);
+	verstr = pkg_get_string(pkg, PKG_VERSION);
+
+	if (epoch) {
+		if (revptr)
 			sprintf_alloc(&version, "%d:%s-%s",
-				      pkg->epoch, pkg->version, pkg->revision);
+				      epoch, verstr, revptr);
 		else
 			sprintf_alloc(&version, "%d:%s",
-				      pkg->epoch, pkg->version);
+				      epoch, verstr);
 	} else {
-		if (pkg->revision)
+		if (revptr)
 			sprintf_alloc(&version, "%s-%s",
-				      pkg->version, pkg->revision);
+				      verstr, revptr);
 		else
-			version = xstrdup(pkg->version);
+			version = xstrdup(verstr);
 	}
 
 	return version;
@@ -1074,6 +1087,7 @@ str_list_t *pkg_get_installed_files(pkg_t * pkg)
 	char *installed_file_name;
 	unsigned int rootdirlen = 0;
 	int list_from_package;
+	const char *local_filename;
 
 	pkg->installed_files_ref_cnt++;
 
@@ -1093,7 +1107,9 @@ str_list_t *pkg_get_installed_files(pkg_t * pkg)
 		list_from_package = 0;
 
 	if (list_from_package) {
-		if (pkg->local_filename == NULL) {
+		local_filename = pkg_get_string(pkg, PKG_LOCAL_FILENAME);
+
+		if (!local_filename) {
 			return pkg->installed_files;
 		}
 		/* XXX: CLEANUP: Maybe rewrite this to avoid using a temporary
@@ -1121,7 +1137,7 @@ str_list_t *pkg_get_installed_files(pkg_t * pkg)
 		err = pkg_extract_data_file_names_to_stream(pkg, list_file);
 		if (err) {
 			opkg_msg(ERROR, "Error extracting file list from %s.\n",
-				 pkg->local_filename);
+				 local_filename);
 			fclose(list_file);
 			unlink(list_file_name);
 			free(list_file_name);
@@ -1318,13 +1334,14 @@ int pkg_run_script(pkg_t * pkg, const char *script, const char *args)
 int pkg_arch_supported(pkg_t * pkg)
 {
 	nv_pair_list_elt_t *l;
+	char *architecture = pkg_get_string(pkg, PKG_ARCHITECTURE);
 
-	if (!pkg->architecture)
+	if (!architecture)
 		return 1;
 
 	list_for_each_entry(l, &conf->arch_list.head, node) {
 		nv_pair_t *nv = (nv_pair_t *) l->data;
-		if (strcmp(nv->name, pkg->architecture) == 0) {
+		if (strcmp(nv->name, architecture) == 0) {
 			opkg_msg(DEBUG,
 				 "Arch %s (priority %s) supported for pkg %s.\n",
 				 nv->name, nv->value, pkg->name);
@@ -1333,7 +1350,7 @@ int pkg_arch_supported(pkg_t * pkg)
 	}
 
 	opkg_msg(DEBUG, "Arch %s unsupported for pkg %s.\n",
-		 pkg->architecture, pkg->name);
+		 architecture, pkg->name);
 	return 0;
 }
 

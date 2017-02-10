@@ -25,7 +25,7 @@
 int pkg_extract_control_file_to_stream(pkg_t * pkg, FILE * stream)
 {
 	int err;
-	deb_extract(pkg->local_filename, stream,
+	deb_extract(pkg_get_string(pkg, PKG_LOCAL_FILENAME), stream,
 		    extract_control_tar_gz
 		    | extract_to_stream, NULL, "control", &err);
 	return err;
@@ -40,7 +40,7 @@ pkg_extract_control_files_to_dir_with_prefix(pkg_t * pkg, const char *dir,
 
 	sprintf_alloc(&dir_with_prefix, "%s/%s", dir, prefix);
 
-	deb_extract(pkg->local_filename, stderr,
+	deb_extract(pkg_get_string(pkg, PKG_LOCAL_FILENAME), stderr,
 		    extract_control_tar_gz
 		    | extract_all_to_fs | extract_preserve_date
 		    | extract_unconditional, dir_with_prefix, NULL, &err);
@@ -58,7 +58,7 @@ int pkg_extract_data_files_to_dir(pkg_t * pkg, const char *dir)
 {
 	int err;
 
-	deb_extract(pkg->local_filename, stderr,
+	deb_extract(pkg_get_string(pkg, PKG_LOCAL_FILENAME), stderr,
 		    extract_data_tar_gz
 		    | extract_all_to_fs | extract_preserve_date
 		    | extract_unconditional, dir, NULL, &err);
@@ -83,7 +83,7 @@ int pkg_extract_data_file_names_to_stream(pkg_t * pkg, FILE * stream)
 	   right here, by writing to a tmpfile, then munging things as we
 	   wrote to the actual stream. */
 
-	deb_extract(pkg->local_filename, stream,
+	deb_extract(pkg_get_string(pkg, PKG_LOCAL_FILENAME), stream,
 		    extract_quiet | extract_data_tar_gz | extract_list,
 		    NULL, NULL, &err);
 

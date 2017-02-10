@@ -46,11 +46,12 @@
 static void print_pkg(pkg_t * pkg)
 {
 	char *version = pkg_version_str_alloc(pkg);
+	char *description = pkg_get_string(pkg, PKG_DESCRIPTION);
 	printf("%s - %s", pkg->name, version);
 	if (conf->size)
 		printf(" - %lu", pkg->size);
-	if (pkg->description)
-		printf(" - %s", pkg->description);
+	if (description)
+		printf(" - %s", description);
 	printf("\n");
 	free(version);
 }
@@ -553,7 +554,7 @@ static int opkg_download_cmd(int argc, char **argv)
 			opkg_msg(ERROR, "Failed to download %s.\n", pkg->name);
 		} else {
 			opkg_msg(NOTICE, "Downloaded %s as %s.\n",
-				 pkg->name, pkg->local_filename);
+				 pkg->name, pkg_get_string(pkg, PKG_LOCAL_FILENAME));
 		}
 	}
 
@@ -566,6 +567,7 @@ static int opkg_list_find_cmd(int argc, char **argv, int use_desc)
 	pkg_vec_t *available;
 	pkg_t *pkg;
 	char *pkg_name = NULL;
+	char *description;
 
 	if (argc > 0) {
 		pkg_name = argv[0];
@@ -575,10 +577,11 @@ static int opkg_list_find_cmd(int argc, char **argv, int use_desc)
 	pkg_vec_sort(available, pkg_compare_names);
 	for (i = 0; i < available->len; i++) {
 		pkg = available->pkgs[i];
+		description = use_desc ? pkg_get_string(pkg, PKG_DESCRIPTION) : NULL;
 		/* if we have package name or pattern and pkg does not match, then skip it */
 		if (pkg_name && fnmatch(pkg_name, pkg->name, conf->nocase) &&
-		    (!use_desc || !pkg->description
-		     || fnmatch(pkg_name, pkg->description, conf->nocase)))
+		    (!use_desc || !description
+		     || fnmatch(pkg_name, description, conf->nocase)))
 			continue;
 		print_pkg(pkg);
 	}

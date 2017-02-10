@@ -57,6 +57,8 @@ void package_list_upgradable_callback(pkg_t * pkg, void *data)
 void print_package(pkg_t * pkg)
 {
 	char *v = pkg_version_str_alloc(pkg);
+	const char *tags = pkg_get_string(pkg, PKG_TAGS);
+
 	printf("Name:         %s\n"
 	       "Version:      %s\n"
 	       "Repository:   %s\n"
@@ -68,9 +70,9 @@ void print_package(pkg_t * pkg)
 	       pkg->name,
 	       v,
 	       pkg->src->name,
-	       pkg->architecture,
-	       pkg->description,
-	       pkg->tags ? pkg->tags : "", pkg->size, pkg->state_status);
+	       pkg_get_string(pkg, PKG_ARCHITECTURE),
+	       pkg_get_string(pkg, PKG_DESCRIPTION),
+	       tags ? tags : "", pkg->size, pkg->state_status);
 	free(v);
 }
 
@@ -88,8 +90,9 @@ void opkg_test(void)
 	if (find_pkg) {
 		printf("Finding package \"%s\"\n", find_pkg->name);
 		pkg =
-		    opkg_find_package(find_pkg->name, find_pkg->version,
-				      find_pkg->architecture,
+		    opkg_find_package(find_pkg->name,
+				      pkg_get_string(find_pkg, PKG_VERSION),
+				      pkg_get_string(find_pkg, PKG_ARCHITECTURE),
 				      find_pkg->src->name);
 		if (pkg) {
 			print_package(pkg);

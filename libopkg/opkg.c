@@ -239,12 +239,13 @@ opkg_install_package(const char *package_name,
 		     void *user_data)
 {
 	int err;
-	char *stripped_filename;
+	char *stripped_filename, *local_filename;
 	opkg_progress_data_t pdata;
 	pkg_t *old, *new;
 	pkg_vec_t *deps, *all;
 	int i, ndepends;
 	char **unresolved = NULL;
+	const char *filename;
 
 	opkg_assert(package_name != NULL);
 
@@ -302,7 +303,7 @@ opkg_install_package(const char *package_name,
 		char *url;
 
 		pkg = deps->pkgs[i];
-		if (pkg->local_filename)
+		if (pkg_get_string(pkg, PKG_LOCAL_FILENAME))
 			continue;
 
 		pdata.pkg = pkg;
@@ -314,15 +315,19 @@ opkg_install_package(const char *package_name,
 			return -1;
 		}
 
-		sprintf_alloc(&url, "%s/%s", pkg->src->value, pkg->filename);
+		filename = pkg_get_string(pkg, PKG_FILENAME);
+
+		sprintf_alloc(&url, "%s/%s", pkg->src->value, filename);
 
 		/* Get the filename part, without any directory */
-		stripped_filename = strrchr(pkg->filename, '/');
+		stripped_filename = strrchr(filename, '/');
 		if (!stripped_filename)
-			stripped_filename = pkg->filename;
+			stripped_filename = (char *)filename;
 
-		sprintf_alloc(&pkg->local_filename, "%s/%s", conf->tmp_dir,
+		sprintf_alloc(&local_filename, "%s/%s", conf->tmp_dir,
 			      stripped_filename);
+
+		pkg_set_string(pkg, PKG_LOCAL_FILENAME, local_filename);
 
 		cb_data.cb = progress_callback;
 		cb_data.progress_data = &pdata;
@@ -331,7 +336,7 @@ opkg_install_package(const char *package_name,
 		cb_data.start_range = 75 * i / deps->len;
 		cb_data.finish_range = 75 * (i + 1) / deps->len;
 
-		err = opkg_download(url, pkg->local_filename,
+		err = opkg_download(url, local_filename,
 				    (curl_progress_func) curl_progress_cb,
 				    &cb_data, 0);
 		free(url);
@@ -744,7 +749,7 @@ pkg_t *opkg_find_package(const char *name, const char *ver, const char *arch,
 
 		/* check architecture */
 		if (arch) {
-			if (sstrcmp(pkg->architecture, arch))
+			if (sstrcmp(pkg_get_string(pkg, PKG_ARCHITECTURE), arch))
 				continue;
 		}
 

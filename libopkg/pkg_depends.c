@@ -441,7 +441,7 @@ int version_constraints_satisfied(depend_t * depends, pkg_t * pkg)
 
 	comparison = pkg_compare_versions(pkg, temp);
 
-	free(temp->version);
+	pkg_deinit(temp);
 	free(temp);
 
 	if ((depends->constraint == EARLIER) && (comparison < 0))
@@ -516,14 +516,18 @@ int pkg_dependence_satisfied(depend_t * depend)
 static int is_pkg_in_pkg_vec(pkg_vec_t * vec, pkg_t * pkg)
 {
 	int i;
+	char *arch1, *arch2;
 	pkg_t **pkgs = vec->pkgs;
+	arch1 = pkg_get_string(pkg, PKG_ARCHITECTURE);
 
-	for (i = 0; i < vec->len; i++)
+	for (i = 0; i < vec->len; i++) {
+		arch2 = pkg_get_string(*(pkgs + i), PKG_ARCHITECTURE);
+
 		if ((strcmp(pkg->name, (*(pkgs + i))->name) == 0)
 		    && (pkg_compare_versions(pkg, *(pkgs + i)) == 0)
-		    && (strcmp(pkg->architecture, (*(pkgs + i))->architecture)
-			== 0))
+		    && (strcmp(arch1, arch2) == 0))
 			return 1;
+	}
 	return 0;
 }
 

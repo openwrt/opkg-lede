@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include <sys/types.h>
+#include <libubox/blob.h>
 
 #include "pkg_vec.h"
 #include "str_list.h"
@@ -32,7 +33,9 @@
 
 struct opkg_conf;
 
+#ifndef ARRAY_SIZE
 #define ARRAY_SIZE(array) sizeof(array) / sizeof((array)[0])
+#endif
 
 /* I think "Size" is currently the shortest field name */
 #define PKG_MINIMUM_FIELD_NAME_LEN 4
@@ -75,6 +78,23 @@ enum pkg_state_status {
 };
 typedef enum pkg_state_status pkg_state_status_t;
 
+enum pkg_fields {
+	PKG_MAINTAINER,
+	PKG_PRIORITY,
+	PKG_SOURCE,
+	PKG_TAGS,
+	PKG_SECTION,
+	PKG_EPOCH,
+	PKG_FILENAME,
+	PKG_LOCAL_FILENAME,
+	PKG_VERSION,
+	PKG_REVISION,
+	PKG_ARCHITECTURE,
+	PKG_DESCRIPTION,
+	PKG_MD5SUM,
+	PKG_SHA256SUM,
+};
+
 struct abstract_pkg {
 	char *name;
 	int dependencies_checked;
@@ -113,16 +133,8 @@ struct abstract_pkg {
    we don't often free them.  */
 struct pkg {
 	char *name;
-	unsigned long epoch;
-	char *version;
-	char *revision;
 	pkg_src_t *src;
 	pkg_dest_t *dest;
-	char *architecture;
-	char *section;
-	char *maintainer;
-	char *description;
-	char *tags;
 	pkg_state_want_t state_want;
 	pkg_state_flag_t state_flag;
 	pkg_state_status_t state_status;
@@ -151,17 +163,9 @@ struct pkg {
 
 	abstract_pkg_t *parent;
 
-	char *filename;
-	char *local_filename;
 	char *tmp_unpack_dir;
-	char *md5sum;
-#if defined HAVE_SHA256
-	char *sha256sum;
-#endif
 	unsigned long size;	/* in bytes */
 	unsigned long installed_size;	/* in bytes */
-	char *priority;
-	char *source;
 	conffile_list_t conffiles;
 	time_t installed_time;
 	/* As pointer for lazy evaluation */
@@ -181,11 +185,44 @@ struct pkg {
 	 * package's dependancies */
 	int auto_installed:1;
 	int is_upgrade:1;
+
+	struct blob_buf blob;
 };
 
 pkg_t *pkg_new(void);
 void pkg_deinit(pkg_t * pkg);
 int pkg_init_from_file(pkg_t * pkg, const char *filename);
+
+void *pkg_set_raw(pkg_t *pkg, int id, const void *val, size_t len);
+void *pkg_get_raw(const pkg_t *pkg, int id);
+
+static inline int pkg_set_int(pkg_t *pkg, int id, int val)
+{
+	return (intptr_t) pkg_set_raw(pkg, id, &val, sizeof(val));
+}
+
+static inline int pkg_get_int(const pkg_t *pkg, int id)
+{
+	return (intptr_t) pkg_get_raw(pkg, id);
+}
+
+char *pkg_set_string(pkg_t *pkg, int id, const char *s);
+
+static inline char *pkg_get_string(const pkg_t *pkg, int id)
+{
+	return (char *) pkg_get_raw(pkg, id);
+}
+
+static inline void * pkg_set_ptr(pkg_t *pkg, int id, void *ptr)
+{
+	return pkg_set_raw(pkg, id, ptr, sizeof(ptr));
+}
+
+static inline void * pkg_get_ptr(const pkg_t *pkg, int id)
+{
+	return pkg_get_raw(pkg, id);
+}
+
 abstract_pkg_t *abstract_pkg_new(void);
 
 /*
@@ -196,7 +233,7 @@ int pkg_merge(pkg_t * oldpkg, pkg_t * newpkg);
 
 char *pkg_version_str_alloc(pkg_t * pkg);
 
-int pkg_compare_versions(const pkg_t * pkg, const pkg_t * ref_pkg);
+int pkg_compare_versions(const pkg_t *pkg, const pkg_t *ref_pkg);
 int pkg_name_version_and_architecture_compare(const void *a, const void *b);
 int abstract_pkg_name_compare(const void *a, const void *b);
 

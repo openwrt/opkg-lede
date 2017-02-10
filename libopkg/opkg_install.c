@@ -1182,7 +1182,7 @@ int opkg_install_by_name(const char *pkg_name)
 	old = pkg_hash_fetch_installed_by_name(pkg_name);
 	if (old)
 		opkg_msg(DEBUG2, "Old versions from pkg_hash_fetch %s.\n",
-			 old->version);
+			 pkg_get_string(old, PKG_VERSION));
 
 	new = pkg_hash_fetch_best_installation_candidate_by_name(pkg_name);
 	if (new == NULL) {
@@ -1192,8 +1192,8 @@ int opkg_install_by_name(const char *pkg_name)
 
 	opkg_msg(DEBUG2, "Versions from pkg_hash_fetch:");
 	if (old)
-		opkg_message(DEBUG2, " old %s ", old->version);
-	opkg_message(DEBUG2, " new %s\n", new->version);
+		opkg_message(DEBUG2, " old %s ", pkg_get_string(old, PKG_VERSION));
+	opkg_message(DEBUG2, " new %s\n", pkg_get_string(new, PKG_VERSION));
 
 	new->state_flag |= SF_USER;
 	if (old) {
@@ -1250,11 +1250,12 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 	pkg_vec_t *replacees;
 	abstract_pkg_t *ab_pkg = NULL;
 	int old_state_flag;
-	char *file_md5;
+	char *file_md5, *pkg_md5;
 #ifdef HAVE_SHA256
-	char *file_sha256;
+	char *file_sha256, *pkg_sha256;
 #endif
 	sigset_t newset, oldset;
+	const char *local_filename;
 
 	if (from_upgrade)
 		message = 1;	/* Coming from an upgrade, and should change the output message */
@@ -1264,7 +1265,7 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 	if (!pkg_arch_supported(pkg)) {
 		opkg_msg(ERROR,
 			 "INTERNAL ERROR: architecture %s for pkg %s is unsupported.\n",
-			 pkg->architecture, pkg->name);
+			 pkg_get_string(pkg, PKG_ARCHITECTURE), pkg->name);
 		return -1;
 	}
 	if (pkg->state_status == SS_INSTALLED && conf->nodeps == 0) {
@@ -1307,7 +1308,9 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 	if (err)
 		return -1;
 
-	if (pkg->local_filename == NULL) {
+	local_filename = pkg_get_string(pkg, PKG_LOCAL_FILENAME);
+
+	if (local_filename == NULL) {
 		if (!conf->cache && conf->download_only) {
 			char cwd[4096];
 			if (getcwd(cwd, sizeof(cwd)) != NULL)
@@ -1363,9 +1366,10 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 
 #ifdef HAVE_MD5
 	/* Check for md5 values */
-	if (pkg->md5sum) {
-		file_md5 = file_md5sum_alloc(pkg->local_filename);
-		if (file_md5 && strcmp(file_md5, pkg->md5sum)) {
+	pkg_md5 = pkg_get_string(pkg, PKG_MD5SUM);
+	if (pkg_md5) {
+		file_md5 = file_md5sum_alloc(local_filename);
+		if (file_md5 && strcmp(file_md5, pkg_md5)) {
 			if (!conf->force_checksum) {
 				opkg_msg(ERROR, "Package %s md5sum mismatch. "
 					 "Either the opkg or the package index are corrupt. "
@@ -1385,9 +1389,10 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 
 #ifdef HAVE_SHA256
 	/* Check for sha256 value */
-	if (pkg->sha256sum) {
-		file_sha256 = file_sha256sum_alloc(pkg->local_filename);
-		if (file_sha256 && strcmp(file_sha256, pkg->sha256sum)) {
+	pkg_sha256 = pkg_get_string(pkg, PKG_SHA256SUM);
+	if (pkg_sha256) {
+		file_sha256 = file_sha256sum_alloc(local_filename);
+		if (file_sha256 && strcmp(file_sha256, pkg_sha256)) {
 			if (!conf->force_checksum) {
 				opkg_msg(ERROR,
 					 "Package %s sha256sum mismatch. "
@@ -1418,7 +1423,7 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 		if (unpack_pkg_control_files(pkg) == -1) {
 			opkg_msg(ERROR,
 				 "Failed to unpack control files from %s.\n",
-				 pkg->local_filename);
+				 local_filename);
 			return -1;
 		}
 	}
