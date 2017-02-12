@@ -25,6 +25,7 @@
 #include "pkg.h"
 #include "opkg_utils.h"
 #include "pkg_parse.h"
+#include "pkg_depends.h"
 #include "libbb/libbb.h"
 
 #include "parse_util.h"
@@ -46,6 +47,7 @@ static void parse_status(pkg_t * pkg, const char *sstr)
 
 static void parse_conffiles(pkg_t * pkg, const char *cstr)
 {
+	conffile_list_t *cl;
 	char file_name[1024], md5sum[85];
 
 	if (sscanf(cstr, "%1023s %84s", file_name, md5sum) != 2) {
@@ -54,7 +56,10 @@ static void parse_conffiles(pkg_t * pkg, const char *cstr)
 		return;
 	}
 
-	conffile_list_append(&pkg->conffiles, file_name, md5sum);
+	cl = pkg_get_ptr(pkg, PKG_CONFFILES);
+
+	if (cl)
+		conffile_list_append(cl, file_name, md5sum);
 }
 
 int parse_version(pkg_t * pkg, const char *vstr)
@@ -77,12 +82,14 @@ int parse_version(pkg_t * pkg, const char *vstr)
 		vstr = ++colon;
 	}
 
-	rev = strrchr(pkg_set_string(pkg, PKG_VERSION, vstr), '-');
+	rev = strrchr(vstr, '-');
 
 	if (rev) {
 		*rev++ = '\0';
-		pkg_set_ptr(pkg, PKG_REVISION, rev);
+		pkg_set_string(pkg, PKG_REVISION, rev);
 	}
+
+	pkg_set_string(pkg, PKG_VERSION, vstr);
 
 	return 0;
 }
@@ -102,6 +109,7 @@ static int get_arch_priority(const char *arch)
 int pkg_parse_line(void *ptr, const char *line, uint mask)
 {
 	pkg_t *pkg = (pkg_t *) ptr;
+	abstract_pkg_t *ab_pkg = NULL;
 
 	/* these flags are a bit hackish... */
 	static int reading_conffiles = 0, reading_description = 0;
@@ -117,8 +125,8 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 	switch (*line) {
 	case 'A':
 		if ((mask & PFM_ARCHITECTURE) && is_field("Architecture", line)) {
-			pkg->arch_priority = get_arch_priority(
-				pkg_set_string(pkg, PKG_ARCHITECTURE, line + strlen("Architecture") + 1));
+			pkg_set_int(pkg, PKG_ARCH_PRIORITY, get_arch_priority(
+				pkg_set_string(pkg, PKG_ARCHITECTURE, line + strlen("Architecture") + 1)));
 
 		} else if ((mask & PFM_AUTO_INSTALLED)
 			   && is_field("Auto-Installed", line)) {
@@ -136,8 +144,7 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 			goto dont_reset_flags;
 		} else if ((mask & PFM_CONFLICTS)
 			   && is_field("Conflicts", line))
-			pkg->conflicts_str =
-			    parse_list(line, &pkg->conflicts_count, ',', 0);
+			parse_deplist(pkg, CONFLICTS, line + strlen("Conflicts") + 1);
 		break;
 
 	case 'D':
@@ -147,8 +154,7 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 			reading_description = 1;
 			goto dont_reset_flags;
 		} else if ((mask & PFM_DEPENDS) && is_field("Depends", line))
-			pkg->depends_str =
-			    parse_list(line, &pkg->depends_count, ',', 0);
+			parse_deplist(pkg, DEPEND, line + strlen("Depends") + 1);
 		break;
 
 	case 'E':
@@ -193,22 +199,17 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 		else if ((mask & PFM_PRIORITY) && is_field("Priority", line))
 			pkg_set_string(pkg, PKG_PRIORITY, line + strlen("Priority") + 1);
 		else if ((mask & PFM_PROVIDES) && is_field("Provides", line))
-			pkg->provides_str =
-			    parse_list(line, &pkg->provides_count, ',', 0);
+			parse_providelist(pkg, line + strlen("Provides") + 1);
 		else if ((mask & PFM_PRE_DEPENDS)
 			 && is_field("Pre-Depends", line))
-			pkg->pre_depends_str =
-			    parse_list(line, &pkg->pre_depends_count, ',', 0);
+			parse_deplist(pkg, PREDEPEND, line + strlen("Pre-Depends") + 1);
 		break;
 
 	case 'R':
 		if ((mask & PFM_RECOMMENDS) && is_field("Recommends", line))
-			pkg->recommends_str =
-			    parse_list(line, &pkg->recommends_count, ',', 0);
+			parse_deplist(pkg, RECOMMEND, line + strlen("Recommends") + 1);
 		else if ((mask & PFM_REPLACES) && is_field("Replaces", line))
-			pkg->replaces_str =
-			    parse_list(line, &pkg->replaces_count, ',', 0);
-
+			parse_replacelist(pkg, line + strlen("Replaces") + 1);
 		break;
 
 	case 'S':
@@ -225,8 +226,7 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 		else if ((mask & PFM_STATUS) && is_field("Status", line))
 			parse_status(pkg, line);
 		else if ((mask & PFM_SUGGESTS) && is_field("Suggests", line))
-			pkg->suggests_str =
-			    parse_list(line, &pkg->suggests_count, ',', 0);
+			parse_deplist(pkg, SUGGEST, line + strlen("Suggests") + 1);
 		break;
 
 	case 'T':

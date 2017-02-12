@@ -22,6 +22,7 @@
 #include "pkg_hash.h"
 
 enum depend_type {
+	UNSPEC,
 	PREDEPEND,
 	DEPEND,
 	CONFLICTS,
@@ -60,6 +61,11 @@ void buildConflicts(pkg_t * pkg);
 void buildReplaces(abstract_pkg_t * ab_pkg, pkg_t * pkg);
 void buildDepends(pkg_t * pkg);
 
+void parse_deplist(pkg_t *pkg, enum depend_type type, char *list);
+
+abstract_pkg_t **init_providelist(pkg_t *pkg, int *count);
+void parse_providelist(pkg_t *pkg, char *list);
+
 /**
  * pkg_replaces returns 1 if pkg->replaces contains one of replacee's provides and 0
  * otherwise.
@@ -87,5 +93,7 @@ pkg_vec_t *pkg_hash_fetch_conflicts(pkg_t * pkg);
 int pkg_dependence_satisfiable(depend_t * depend);
 int pkg_dependence_satisfied(depend_t * depend);
 const char *constraint_to_str(enum version_constraint c);
+
+compound_depend_t *pkg_get_depends(pkg_t *pkg, enum depend_type type);
 
 #endif

@@ -32,12 +32,13 @@
  */
 int pkg_has_installed_dependents(pkg_t * pkg, abstract_pkg_t *** pdependents)
 {
-	int nprovides = pkg->provides_count;
-	abstract_pkg_t **provides = pkg->provides;
-	unsigned int n_installed_dependents = 0;
-	int i;
-	for (i = 0; i < nprovides; i++) {
-		abstract_pkg_t *providee = provides[i];
+	abstract_pkg_t **provider, **provides = pkg_get_ptr(pkg, PKG_PROVIDES);
+	unsigned int i, n_installed_dependents = 0;
+
+	provider = provides;
+
+	while (provider && *provider) {
+		abstract_pkg_t *providee = *provider++;
 		abstract_pkg_t **dependers = providee->depended_upon_by;
 		abstract_pkg_t *dep_ab_pkg;
 		if (dependers == NULL)
@@ -47,8 +48,8 @@ int pkg_has_installed_dependents(pkg_t * pkg, abstract_pkg_t *** pdependents)
 				n_installed_dependents++;
 			}
 		}
-
 	}
+
 	/* if caller requested the set of installed dependents */
 	if (pdependents) {
 		int p = 0;
@@ -56,9 +57,11 @@ int pkg_has_installed_dependents(pkg_t * pkg, abstract_pkg_t *** pdependents)
 		    xcalloc((n_installed_dependents + 1),
 			    sizeof(abstract_pkg_t *));
 
+		provider = provides;
 		*pdependents = dependents;
-		for (i = 0; i < nprovides; i++) {
-			abstract_pkg_t *providee = provides[i];
+
+		while (provider && *provider) {
+			abstract_pkg_t *providee = *provider++;
 			abstract_pkg_t **dependers = providee->depended_upon_by;
 			abstract_pkg_t *dep_ab_pkg;
 			if (dependers == NULL)
@@ -169,18 +172,14 @@ static void print_dependents_warning(pkg_t * pkg, abstract_pkg_t ** dependents)
  */
 static int remove_autoinstalled(pkg_t * pkg)
 {
-	int i, j;
+	int j;
 	int err = 0;
 	int n_deps;
 	pkg_t *p;
 	struct compound_depend *cdep;
 	abstract_pkg_t **dependents;
 
-	int count = pkg->pre_depends_count +
-	    pkg->depends_count + pkg->recommends_count + pkg->suggests_count;
-
-	for (i = 0; i < count; i++) {
-		cdep = &pkg->depends[i];
+	for (cdep = pkg_get_ptr(pkg, PKG_DEPENDS); cdep && cdep->type; cdep++) {
 		if (cdep->type != PREDEPEND
 		    && cdep->type != DEPEND && cdep->type != RECOMMEND)
 			continue;

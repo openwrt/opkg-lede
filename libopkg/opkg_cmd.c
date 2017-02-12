@@ -285,7 +285,6 @@ opkg_recurse_pkgs_in_order(pkg_t * pkg, pkg_vec_t * all,
 			   pkg_vec_t * visited, pkg_vec_t * ordered)
 {
 	int j, k, l, m;
-	int count;
 	pkg_t *dep;
 	compound_depend_t *compound_depend;
 	depend_t **possible_satisfiers;
@@ -312,17 +311,13 @@ opkg_recurse_pkgs_in_order(pkg_t * pkg, pkg_vec_t * all,
 
 	pkg_vec_insert(visited, pkg);
 
-	count = pkg->pre_depends_count + pkg->depends_count +
-	    pkg->recommends_count + pkg->suggests_count;
-
 	opkg_msg(DEBUG, "pkg %s.\n", pkg->name);
 
 	/* Iterate over all the dependencies of pkg. For each one, find a package
 	   that is either installed or unpacked and satisfies this dependency.
 	   (there should only be one such package per dependency installed or
 	   unpacked). Then recurse to the dependency package */
-	for (j = 0; j < count; j++) {
-		compound_depend = &pkg->depends[j];
+	for (compound_depend = pkg_get_ptr(pkg, PKG_DEPENDS); compound_depend && compound_depend->type; compound_depend++) {
 		possible_satisfiers = compound_depend->possibilities;
 		for (k = 0; k < compound_depend->possibility_count; k++) {
 			abpkg = possible_satisfiers[k]->pkg;
@@ -633,6 +628,7 @@ static int opkg_list_changed_conffiles_cmd(int argc, char **argv)
 	pkg_t *pkg;
 	char *pkg_name = NULL;
 	conffile_list_elt_t *iter;
+	conffile_list_t *cl;
 	conffile_t *cf;
 
 	if (argc > 0) {
@@ -643,13 +639,14 @@ static int opkg_list_changed_conffiles_cmd(int argc, char **argv)
 	pkg_vec_sort(available, pkg_compare_names);
 	for (i = 0; i < available->len; i++) {
 		pkg = available->pkgs[i];
+		cl = pkg_get_ptr(pkg, PKG_CONFFILES);
 		/* if we have package name or pattern and pkg does not match, then skip it */
 		if (pkg_name && fnmatch(pkg_name, pkg->name, conf->nocase))
 			continue;
-		if (nv_pair_list_empty(&pkg->conffiles))
+		if (!cl || nv_pair_list_empty(cl))
 			continue;
-		for (iter = nv_pair_list_first(&pkg->conffiles); iter;
-		     iter = nv_pair_list_next(&pkg->conffiles, iter)) {
+		for (iter = nv_pair_list_first(cl); iter;
+		     iter = nv_pair_list_next(cl, iter)) {
 			cf = (conffile_t *) iter->data;
 			if (cf->name && cf->value
 			    && conffile_has_been_modified(cf))
@@ -690,6 +687,7 @@ static int opkg_info_status_cmd(int argc, char **argv, int installed_only)
 	pkg_vec_t *available;
 	pkg_t *pkg;
 	char *pkg_name = NULL;
+	conffile_list_t *cl;
 
 	if (argc > 0) {
 		pkg_name = argv[0];
@@ -709,10 +707,12 @@ static int opkg_info_status_cmd(int argc, char **argv, int installed_only)
 
 		pkg_formatted_info(stdout, pkg);
 
-		if (conf->verbosity >= NOTICE) {
+		cl = pkg_get_ptr(pkg, PKG_CONFFILES);
+
+		if (conf->verbosity >= NOTICE && cl) {
 			conffile_list_elt_t *iter;
-			for (iter = nv_pair_list_first(&pkg->conffiles); iter;
-			     iter = nv_pair_list_next(&pkg->conffiles, iter)) {
+			for (iter = nv_pair_list_first(cl); iter;
+			     iter = nv_pair_list_next(cl, iter)) {
 				conffile_t *cf = (conffile_t *) iter->data;
 				int modified = conffile_has_been_modified(cf);
 				if (cf->value)
@@ -897,7 +897,6 @@ static int opkg_files_cmd(int argc, char **argv)
 static int opkg_depends_cmd(int argc, char **argv)
 {
 	int i, j, k;
-	int depends_count;
 	pkg_vec_t *available_pkgs;
 	compound_depend_t *cdep;
 	pkg_t *pkg;
@@ -918,15 +917,9 @@ static int opkg_depends_cmd(int argc, char **argv)
 			if (fnmatch(argv[i], pkg->name, conf->nocase) != 0)
 				continue;
 
-			depends_count = pkg->depends_count +
-			    pkg->pre_depends_count +
-			    pkg->recommends_count + pkg->suggests_count;
-
 			opkg_msg(NOTICE, "%s depends on:\n", pkg->name);
 
-			for (k = 0; k < depends_count; k++) {
-				cdep = &pkg->depends[k];
-
+			for (k = 0, cdep = pkg_get_ptr(pkg, PKG_DEPENDS); cdep && cdep->type; k++, cdep++) {
 				if (cdep->type != DEPEND)
 					continue;
 
@@ -944,13 +937,15 @@ static int opkg_depends_cmd(int argc, char **argv)
 
 static int pkg_mark_provides(pkg_t * pkg)
 {
-	int provides_count = pkg->provides_count;
-	abstract_pkg_t **provides = pkg->provides;
-	int i;
+	abstract_pkg_t **provider = pkg_get_ptr(pkg, PKG_PROVIDES);
+
 	pkg->parent->state_flag |= SF_MARKED;
-	for (i = 0; i < provides_count; i++) {
-		provides[i]->state_flag |= SF_MARKED;
+
+	while (provider && *provider) {
+		(*provider)->state_flag |= SF_MARKED;
+		provider++;
 	}
+
 	return 0;
 }
 
@@ -968,11 +963,11 @@ opkg_what_depends_conflicts_cmd(enum depend_type what_field_type, int recursive,
 				int argc, char **argv)
 {
 	depend_t *possibility;
-	compound_depend_t *cdep;
+	compound_depend_t *cdep, *deps;
 	pkg_vec_t *available_pkgs;
 	pkg_t *pkg;
-	int i, j, k, l;
-	int changed, count;
+	int i, j, l;
+	int changed;
 	const char *rel_str = NULL;
 	char *ver;
 
@@ -1022,21 +1017,21 @@ opkg_what_depends_conflicts_cmd(enum depend_type what_field_type, int recursive,
 		for (j = 0; j < available_pkgs->len; j++) {
 
 			pkg = available_pkgs->pkgs[j];
+			/*
 			count = ((what_field_type == CONFLICTS)
 				 ? pkg->conflicts_count
 				 : pkg->pre_depends_count +
 				 pkg->depends_count +
 				 pkg->recommends_count + pkg->suggests_count);
+				 */
 
 			/* skip this package if it is already marked */
 			if (pkg->parent->state_flag & SF_MARKED)
 				continue;
 
-			for (k = 0; k < count; k++) {
-				cdep = (what_field_type == CONFLICTS)
-				    ? &pkg->conflicts[k]
-				    : &pkg->depends[k];
+			deps = pkg_get_ptr(pkg, (what_field_type == CONFLICTS) ? PKG_CONFLICTS : PKG_DEPENDS);
 
+			for (cdep = deps; cdep->type; cdep++) {
 				if (what_field_type != cdep->type)
 					continue;
 
@@ -1115,6 +1110,7 @@ static int
 opkg_what_provides_replaces_cmd(enum what_field_type what_field_type, int argc,
 				char **argv)
 {
+	abstract_pkg_t *apkg, **abpkgs;
 
 	if (argc > 0) {
 		pkg_vec_t *available_pkgs = pkg_vec_alloc();
@@ -1135,33 +1131,22 @@ opkg_what_provides_replaces_cmd(enum what_field_type what_field_type, int argc,
 			opkg_msg(NOTICE, "What %s %s\n", rel_str, target);
 			for (j = 0; j < available_pkgs->len; j++) {
 				pkg_t *pkg = available_pkgs->pkgs[j];
-				int k;
-				int count =
-				    (what_field_type ==
-				     WHATPROVIDES) ? pkg->provides_count : pkg->
-				    replaces_count;
-				for (k = 0; k < count; k++) {
-					abstract_pkg_t *apkg =
-					    ((what_field_type == WHATPROVIDES)
-					     ? pkg->provides[k]
-					     : pkg->replaces[k]);
-					if (fnmatch
-					    (target, apkg->name,
-					     conf->nocase) == 0) {
-						opkg_msg(NOTICE, "    %s",
-							 pkg->name);
-						if ((conf->
-						     nocase ? strcasecmp(target,
-									 apkg->
-									 name) :
-						     strcmp(target,
-							    apkg->name)) != 0)
-							opkg_msg(NOTICE,
-								 "\t%s %s\n",
-								 rel_str,
-								 apkg->name);
-						opkg_message(NOTICE, "\n");
-					}
+				abpkgs = pkg_get_ptr(pkg, (what_field_type == WHATPROVIDES) ? PKG_PROVIDES : PKG_REPLACES);
+
+				while (abpkgs && *abpkgs) {
+					apkg = *abpkgs;
+
+					if (fnmatch(target, apkg->name, conf->nocase))
+						continue;
+
+					opkg_msg(NOTICE, "    %s", pkg->name);
+
+					if ((conf->nocase ? strcasecmp(target, apkg->name)
+					    : strcmp(target, apkg->name)))
+						opkg_msg(NOTICE, "\t%s %s\n", rel_str, apkg->name);
+
+					opkg_message(NOTICE, "\n");
+					abpkgs++;
 				}
 			}
 		}

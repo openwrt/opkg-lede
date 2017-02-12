@@ -232,19 +232,23 @@ static int unpack_pkg_control_files(pkg_t * pkg)
 	int err;
 	char *conffiles_file_name;
 	char *root_dir;
+	char *tmp_unpack_dir;
 	FILE *conffiles_file;
+	conffile_list_t *cl;
 
-	sprintf_alloc(&pkg->tmp_unpack_dir, "%s/%s-XXXXXX", conf->tmp_dir,
+	sprintf_alloc(&tmp_unpack_dir, "%s/%s-XXXXXX", conf->tmp_dir,
 		      pkg->name);
 
-	pkg->tmp_unpack_dir = mkdtemp(pkg->tmp_unpack_dir);
-	if (pkg->tmp_unpack_dir == NULL) {
+	tmp_unpack_dir = mkdtemp(tmp_unpack_dir);
+	if (tmp_unpack_dir == NULL) {
 		opkg_perror(ERROR, "Failed to create temporary directory '%s'",
-			    pkg->tmp_unpack_dir);
+			    tmp_unpack_dir);
 		return -1;
 	}
 
-	err = pkg_extract_control_files_to_dir(pkg, pkg->tmp_unpack_dir);
+	pkg_set_string(pkg, PKG_TMP_UNPACK_DIR, tmp_unpack_dir);
+
+	err = pkg_extract_control_files_to_dir(pkg, tmp_unpack_dir);
 	if (err) {
 		return err;
 	}
@@ -255,12 +259,13 @@ static int unpack_pkg_control_files(pkg_t * pkg)
 	   move all of unpack_pkg_control_files to that function. */
 
 	/* Don't need to re-read conffiles if we already have it */
-	if (!nv_pair_list_empty(&pkg->conffiles)) {
+	cl = pkg_get_ptr(pkg, PKG_CONFFILES);
+	if (cl && !nv_pair_list_empty(cl)) {
 		return 0;
 	}
 
 	sprintf_alloc(&conffiles_file_name, "%s/conffiles",
-		      pkg->tmp_unpack_dir);
+		      tmp_unpack_dir);
 	if (!file_exists(conffiles_file_name)) {
 		free(conffiles_file_name);
 		return 0;
@@ -273,6 +278,9 @@ static int unpack_pkg_control_files(pkg_t * pkg)
 		return -1;
 	}
 	free(conffiles_file_name);
+
+	cl = xcalloc(1, sizeof(*cl));
+	conffile_list_init(cl);
 
 	while (1) {
 		char *cf_name;
@@ -304,11 +312,13 @@ static int unpack_pkg_control_files(pkg_t * pkg)
 
 		/* Can't get an md5sum now, (file isn't extracted yet).
 		   We'll wait until resolve_conffiles */
-		conffile_list_append(&pkg->conffiles, cf_name_in_dest, NULL);
+		conffile_list_append(cl, cf_name_in_dest, NULL);
 
 		free(cf_name);
 		free(cf_name_in_dest);
 	}
+
+	pkg_set_ptr(pkg, PKG_CONFFILES, cl);
 
 	fclose(conffiles_file);
 
@@ -321,28 +331,20 @@ static int unpack_pkg_control_files(pkg_t * pkg)
  */
 static int pkg_remove_orphan_dependent(pkg_t * pkg, pkg_t * old_pkg)
 {
-	int i, j, k, l, found, r, err = 0;
+	int j, l, found, r, err = 0;
 	int n_deps;
 	pkg_t *p;
 	struct compound_depend *cd0, *cd1;
 	abstract_pkg_t **dependents;
 
-	int count0 = old_pkg->pre_depends_count +
-	    old_pkg->depends_count +
-	    old_pkg->recommends_count + old_pkg->suggests_count;
-	int count1 = pkg->pre_depends_count +
-	    pkg->depends_count + pkg->recommends_count + pkg->suggests_count;
-
-	for (i = 0; i < count0; i++) {
-		cd0 = &old_pkg->depends[i];
+	for (cd0 = pkg_get_ptr(old_pkg, PKG_DEPENDS); cd0 && cd0->type; cd0++) {
 		if (cd0->type != DEPEND)
 			continue;
 		for (j = 0; j < cd0->possibility_count; j++) {
 
 			found = 0;
 
-			for (k = 0; k < count1; k++) {
-				cd1 = &pkg->depends[k];
+			for (cd1 = pkg_get_ptr(pkg, PKG_DEPENDS); cd1 && cd1->type; cd1++) {
 				if (cd1->type != DEPEND)
 					continue;
 				for (l = 0; l < cd1->possibility_count; l++) {
@@ -402,11 +404,11 @@ static int pkg_remove_orphan_dependent(pkg_t * pkg, pkg_t * old_pkg)
 static int
 pkg_get_installed_replacees(pkg_t * pkg, pkg_vec_t * installed_replacees)
 {
-	abstract_pkg_t **replaces = pkg->replaces;
-	int replaces_count = pkg->replaces_count;
-	int i, j;
-	for (i = 0; i < replaces_count; i++) {
-		abstract_pkg_t *ab_pkg = replaces[i];
+	abstract_pkg_t **replaces = pkg_get_ptr(pkg, PKG_REPLACES);
+	int j;
+
+	while (replaces && *replaces) {
+		abstract_pkg_t *ab_pkg = *replaces++;
 		pkg_vec_t *pkg_vec = ab_pkg->pkgs;
 		if (pkg_vec) {
 			for (j = 0; j < pkg_vec->len; j++) {
@@ -420,6 +422,7 @@ pkg_get_installed_replacees(pkg_t * pkg, pkg_vec_t * installed_replacees)
 			}
 		}
 	}
+
 	return installed_replacees->len;
 }
 
@@ -692,14 +695,17 @@ static int backup_modified_conffiles(pkg_t * pkg, pkg_t * old_pkg)
 	int err;
 	conffile_list_elt_t *iter;
 	conffile_t *cf;
+	conffile_list_t *cl;
 
 	if (conf->noaction)
 		return 0;
 
 	/* Backup all modified conffiles */
 	if (old_pkg) {
-		for (iter = nv_pair_list_first(&old_pkg->conffiles); iter;
-		     iter = nv_pair_list_next(&old_pkg->conffiles, iter)) {
+		cl = pkg_get_ptr(old_pkg, PKG_CONFFILES);
+
+		for (iter = cl ? nv_pair_list_first(cl) : NULL; iter;
+		     iter = nv_pair_list_next(cl, iter)) {
 			char *cf_name;
 
 			cf = iter->data;
@@ -718,8 +724,10 @@ static int backup_modified_conffiles(pkg_t * pkg, pkg_t * old_pkg)
 	}
 
 	/* Backup all conffiles that were not conffiles in old_pkg */
-	for (iter = nv_pair_list_first(&pkg->conffiles); iter;
-	     iter = nv_pair_list_next(&pkg->conffiles, iter)) {
+	cl = pkg_get_ptr(pkg, PKG_CONFFILES);
+
+	for (iter = cl ? nv_pair_list_first(cl) : NULL; iter;
+	     iter = nv_pair_list_next(cl, iter)) {
 		char *cf_name;
 		cf = (conffile_t *) iter->data;
 		cf_name = root_filename_alloc(cf->name);
@@ -742,17 +750,22 @@ static int backup_modified_conffiles(pkg_t * pkg, pkg_t * old_pkg)
 
 static int backup_modified_conffiles_unwind(pkg_t * pkg, pkg_t * old_pkg)
 {
+	conffile_list_t *cl;
 	conffile_list_elt_t *iter;
 
 	if (old_pkg) {
-		for (iter = nv_pair_list_first(&old_pkg->conffiles); iter;
-		     iter = nv_pair_list_next(&old_pkg->conffiles, iter)) {
+		cl = pkg_get_ptr(old_pkg, PKG_CONFFILES);
+
+		for (iter = cl ? nv_pair_list_first(cl) : NULL; iter;
+		     iter = nv_pair_list_next(cl, iter)) {
 			backup_remove(((nv_pair_t *) iter->data)->name);
 		}
 	}
 
-	for (iter = nv_pair_list_first(&pkg->conffiles); iter;
-	     iter = nv_pair_list_next(&pkg->conffiles, iter)) {
+	cl = pkg_get_ptr(pkg, PKG_CONFFILES);
+
+	for (iter = cl ? nv_pair_list_first(cl) : NULL; iter;
+	     iter = nv_pair_list_next(cl, iter)) {
 		backup_remove(((nv_pair_t *) iter->data)->name);
 	}
 
@@ -1108,6 +1121,7 @@ static int install_data_files(pkg_t * pkg)
 static int resolve_conffiles(pkg_t * pkg)
 {
 	conffile_list_elt_t *iter;
+	conffile_list_t *cl;
 	conffile_t *cf;
 	char *cf_backup;
 	char *chksum;
@@ -1115,8 +1129,10 @@ static int resolve_conffiles(pkg_t * pkg)
 	if (conf->noaction)
 		return 0;
 
-	for (iter = nv_pair_list_first(&pkg->conffiles); iter;
-	     iter = nv_pair_list_next(&pkg->conffiles, iter)) {
+	cl = pkg_get_ptr(pkg, PKG_CONFFILES);
+
+	for (iter = cl ? nv_pair_list_first(cl) : NULL; iter;
+	     iter = nv_pair_list_next(cl, iter)) {
 		char *root_filename;
 		cf = (conffile_t *) iter->data;
 		root_filename = root_filename_alloc(cf->name);
@@ -1330,6 +1346,8 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 				 pkg->name);
 			return -1;
 		}
+
+		local_filename = pkg_get_string(pkg, PKG_LOCAL_FILENAME);
 	}
 
 	/* check that the repository is valid */
@@ -1423,7 +1441,7 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 		return 0;
 	}
 
-	if (pkg->tmp_unpack_dir == NULL) {
+	if (!pkg_get_string(pkg, PKG_TMP_UNPACK_DIR)) {
 		if (unpack_pkg_control_files(pkg) == -1) {
 			opkg_msg(ERROR,
 				 "Failed to unpack control files from %s.\n",

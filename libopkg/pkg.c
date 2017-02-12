@@ -79,29 +79,9 @@ static void pkg_init(pkg_t * pkg)
 	pkg->state_want = SW_UNKNOWN;
 	pkg->state_flag = SF_OK;
 	pkg->state_status = SS_NOT_INSTALLED;
-	pkg->depends_str = NULL;
-	pkg->provides_str = NULL;
-	pkg->depends_count = 0;
-	pkg->depends = NULL;
-	pkg->suggests_str = NULL;
-	pkg->recommends_str = NULL;
-	pkg->suggests_count = 0;
-	pkg->recommends_count = 0;
 
 	active_list_init(&pkg->list);
 
-	pkg->conflicts = NULL;
-	pkg->conflicts_count = 0;
-
-	pkg->replaces = NULL;
-	pkg->replaces_count = 0;
-
-	pkg->pre_depends_count = 0;
-	pkg->pre_depends_str = NULL;
-	pkg->provides_count = 0;
-	pkg->provides = NULL;
-	pkg->tmp_unpack_dir = NULL;
-	conffile_list_init(&pkg->conffiles);
 	pkg->installed_files = NULL;
 	pkg->installed_files_ref_cnt = 0;
 	pkg->essential = 0;
@@ -194,7 +174,7 @@ static void compound_depend_deinit(compound_depend_t * depends)
 
 void pkg_deinit(pkg_t * pkg)
 {
-	int i;
+	compound_depend_t *deps, *dep;
 
 	if (pkg->name)
 		free(pkg->name);
@@ -211,40 +191,27 @@ void pkg_deinit(pkg_t * pkg)
 
 	active_list_clear(&pkg->list);
 
-	if (pkg->replaces)
-		free(pkg->replaces);
-	pkg->replaces = NULL;
+	deps = pkg_get_ptr(pkg, PKG_DEPENDS);
 
-	if (pkg->depends) {
-		int count = pkg->pre_depends_count
-		    + pkg->depends_count
-		    + pkg->recommends_count + pkg->suggests_count;
+	if (deps) {
+		for (dep = deps; dep->type; dep++)
+			compound_depend_deinit(dep);
 
-		for (i = 0; i < count; i++)
-			compound_depend_deinit(&pkg->depends[i]);
-		free(pkg->depends);
+		free(deps);
+		pkg_set_ptr(pkg, PKG_DEPENDS, NULL);
 	}
 
-	if (pkg->conflicts) {
-		for (i = 0; i < pkg->conflicts_count; i++)
-			compound_depend_deinit(&pkg->conflicts[i]);
-		free(pkg->conflicts);
+	deps = pkg_get_ptr(pkg, PKG_CONFLICTS);
+
+	if (deps) {
+		for (dep = deps; dep->type; dep++)
+			compound_depend_deinit(dep);
+
+		free(deps);
+		pkg_set_ptr(pkg, PKG_CONFLICTS, NULL);
 	}
 
-	if (pkg->provides)
-		free(pkg->provides);
-
-	pkg->pre_depends_count = 0;
-	pkg->provides_count = 0;
-
-	/* CLEANUP: It'd be nice to pullin the cleanup function from
-	   opkg_install.c here. See comment in
-	   opkg_install.c:cleanup_temporary_files */
-	if (pkg->tmp_unpack_dir)
-		free(pkg->tmp_unpack_dir);
-	pkg->tmp_unpack_dir = NULL;
-
-	conffile_list_deinit(&pkg->conffiles);
+	//conffile_list_deinit(&pkg->conffiles);
 
 	/* XXX: QUESTION: Is forcing this to 1 correct? I suppose so,
 	   since if they are calling deinit, they should know. Maybe do an
@@ -253,7 +220,7 @@ void pkg_deinit(pkg_t * pkg)
 	pkg_free_installed_files(pkg);
 	pkg->essential = 0;
 
-	blob_buf_free(&pkg->blob);
+	//blob_buf_free(&pkg->blob);
 }
 
 int pkg_init_from_file(pkg_t * pkg, const char *filename)
@@ -315,6 +282,9 @@ err0:
 /* Merge any new information in newpkg into oldpkg */
 int pkg_merge(pkg_t * oldpkg, pkg_t * newpkg)
 {
+	abstract_pkg_t **ab;
+	conffile_list_t *cf, head;
+
 	if (oldpkg == newpkg) {
 		return 0;
 	}
@@ -328,8 +298,8 @@ int pkg_merge(pkg_t * oldpkg, pkg_t * newpkg)
 		oldpkg->dest = newpkg->dest;
 	if (!pkg_get_string(oldpkg, PKG_ARCHITECTURE))
 		pkg_set_string(oldpkg, PKG_ARCHITECTURE, pkg_get_string(newpkg, PKG_ARCHITECTURE));
-	if (!oldpkg->arch_priority)
-		oldpkg->arch_priority = newpkg->arch_priority;
+	if (!pkg_get_int(oldpkg, PKG_ARCH_PRIORITY))
+		pkg_set_int(oldpkg, PKG_ARCH_PRIORITY, pkg_get_int(newpkg, PKG_ARCH_PRIORITY));
 	if (!pkg_get_string(oldpkg, PKG_SECTION))
 		pkg_set_string(oldpkg, PKG_SECTION, pkg_get_string(newpkg, PKG_SECTION));
 	if (!pkg_get_string(oldpkg, PKG_MAINTAINER))
@@ -337,56 +307,34 @@ int pkg_merge(pkg_t * oldpkg, pkg_t * newpkg)
 	if (!pkg_get_string(oldpkg, PKG_DESCRIPTION))
 		pkg_set_string(oldpkg, PKG_DESCRIPTION, pkg_get_string(newpkg, PKG_DESCRIPTION));
 
-	if (!oldpkg->depends_count && !oldpkg->pre_depends_count
-	    && !oldpkg->recommends_count && !oldpkg->suggests_count) {
-		oldpkg->depends_count = newpkg->depends_count;
-		newpkg->depends_count = 0;
-
-		oldpkg->depends = newpkg->depends;
-		newpkg->depends = NULL;
-
-		oldpkg->pre_depends_count = newpkg->pre_depends_count;
-		newpkg->pre_depends_count = 0;
-
-		oldpkg->recommends_count = newpkg->recommends_count;
-		newpkg->recommends_count = 0;
-
-		oldpkg->suggests_count = newpkg->suggests_count;
-		newpkg->suggests_count = 0;
+	if (!pkg_get_ptr(oldpkg, PKG_DEPENDS)) {
+		pkg_set_ptr(oldpkg, PKG_DEPENDS, pkg_get_ptr(newpkg, PKG_DEPENDS));
+		pkg_set_ptr(newpkg, PKG_DEPENDS, NULL);
 	}
 
-	if (oldpkg->provides_count <= 1) {
-		oldpkg->provides_count = newpkg->provides_count;
-		newpkg->provides_count = 0;
+	ab = pkg_get_ptr(oldpkg, PKG_PROVIDES);
 
-		if (!oldpkg->provides) {
-			oldpkg->provides = newpkg->provides;
-			newpkg->provides = NULL;
-		}
+	if (!ab || !ab[0] || !ab[1]) {
+		pkg_set_ptr(oldpkg, PKG_PROVIDES, pkg_get_ptr(newpkg, PKG_PROVIDES));
+		pkg_set_ptr(newpkg, PKG_PROVIDES, NULL);
 	}
 
-	if (!oldpkg->conflicts_count) {
-		oldpkg->conflicts_count = newpkg->conflicts_count;
-		newpkg->conflicts_count = 0;
-
-		oldpkg->conflicts = newpkg->conflicts;
-		newpkg->conflicts = NULL;
+	if (!pkg_get_ptr(oldpkg, PKG_CONFLICTS)) {
+		pkg_set_ptr(oldpkg, PKG_CONFLICTS, pkg_get_ptr(newpkg, PKG_CONFLICTS));
+		pkg_set_ptr(newpkg, PKG_CONFLICTS, NULL);
 	}
 
-	if (!oldpkg->replaces_count) {
-		oldpkg->replaces_count = newpkg->replaces_count;
-		newpkg->replaces_count = 0;
-
-		oldpkg->replaces = newpkg->replaces;
-		newpkg->replaces = NULL;
+	if (!pkg_get_ptr(oldpkg, PKG_REPLACES)) {
+		pkg_set_ptr(oldpkg, PKG_REPLACES, pkg_get_ptr(newpkg, PKG_REPLACES));
+		pkg_set_ptr(newpkg, PKG_REPLACES, NULL);
 	}
 
 	if (!pkg_get_string(oldpkg, PKG_FILENAME))
 		pkg_set_string(oldpkg, PKG_FILENAME, pkg_get_string(newpkg, PKG_FILENAME));
 	if (!pkg_get_string(oldpkg, PKG_LOCAL_FILENAME))
 		pkg_set_string(oldpkg, PKG_LOCAL_FILENAME, pkg_get_string(newpkg, PKG_LOCAL_FILENAME));
-	if (!oldpkg->tmp_unpack_dir)
-		oldpkg->tmp_unpack_dir = xstrdup(newpkg->tmp_unpack_dir);
+	if (!pkg_get_string(oldpkg, PKG_TMP_UNPACK_DIR))
+		pkg_set_string(oldpkg, PKG_TMP_UNPACK_DIR, pkg_get_string(newpkg, PKG_TMP_UNPACK_DIR));
 	if (!pkg_get_string(oldpkg, PKG_MD5SUM))
 		pkg_set_string(oldpkg, PKG_MD5SUM, pkg_get_string(newpkg, PKG_MD5SUM));
 	if (!pkg_get_string(oldpkg, PKG_SHA256SUM))
@@ -400,9 +348,13 @@ int pkg_merge(pkg_t * oldpkg, pkg_t * newpkg)
 	if (!pkg_get_string(oldpkg, PKG_SOURCE))
 		pkg_set_string(oldpkg, PKG_SOURCE, pkg_get_string(newpkg, PKG_SOURCE));
 
-	if (nv_pair_list_empty(&oldpkg->conffiles)) {
-		list_splice_init(&newpkg->conffiles.head,
-				 &oldpkg->conffiles.head);
+	if (!pkg_get_ptr(oldpkg, PKG_CONFFILES)) {
+		cf = pkg_get_ptr(newpkg, PKG_CONFFILES);
+		if (cf) {
+			conffile_list_init(&head);
+			list_splice_init(&cf->head, &head.head);
+			pkg_set_raw(oldpkg, PKG_CONFFILES, &head, sizeof(head));
+		}
 	}
 
 	if (!oldpkg->installed_files) {
@@ -585,8 +537,8 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 	int i, j;
 	char *str;
 	const char *p;
-	int depends_count = pkg->pre_depends_count +
-	    pkg->depends_count + pkg->recommends_count + pkg->suggests_count;
+	compound_depend_t *dep;
+	abstract_pkg_t **ab_pkg;
 
 	if (strlen(field) < PKG_MINIMUM_FIELD_NAME_LEN) {
 		goto UNKNOWN_FMT_FIELD;
@@ -611,14 +563,17 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 	case 'c':
 	case 'C':
 		if (strcasecmp(field, "Conffiles") == 0) {
+			conffile_list_t *cl;
 			conffile_list_elt_t *iter;
 
-			if (nv_pair_list_empty(&pkg->conffiles))
+			cl = pkg_get_ptr(pkg, PKG_CONFFILES);
+
+			if (!cl || nv_pair_list_empty(cl))
 				return;
 
 			fprintf(fp, "Conffiles:\n");
-			for (iter = nv_pair_list_first(&pkg->conffiles); iter;
-			     iter = nv_pair_list_next(&pkg->conffiles, iter)) {
+			for (iter = nv_pair_list_first(cl); iter;
+			     iter = nv_pair_list_next(cl, iter)) {
 				if (((conffile_t *) iter->data)->name
 				    && ((conffile_t *) iter->data)->value) {
 					fprintf(fp, " %s %s\n",
@@ -630,11 +585,12 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 			}
 		} else if (strcasecmp(field, "Conflicts") == 0) {
 			struct depend *cdep;
-			if (pkg->conflicts_count) {
+			compound_depend_t *deps, *dep;
+			deps = pkg_get_ptr(pkg, PKG_CONFLICTS);
+			if (deps) {
 				fprintf(fp, "Conflicts:");
-				for (i = 0; i < pkg->conflicts_count; i++) {
-					cdep =
-					    pkg->conflicts[i].possibilities[0];
+				for (i = 0, dep = deps; dep->type; dep++, i++) {
+					cdep = dep->possibilities[0];
 					fprintf(fp, "%s %s", i == 0 ? "" : ",",
 						cdep->pkg->name);
 					if (cdep->version) {
@@ -653,10 +609,11 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 	case 'd':
 	case 'D':
 		if (strcasecmp(field, "Depends") == 0) {
-			if (pkg->depends_count) {
+			dep = pkg_get_depends(pkg, DEPEND);
+			if (dep) {
 				fprintf(fp, "Depends:");
-				for (j = 0, i = 0; i < depends_count; i++) {
-					if (pkg->depends[i].type != DEPEND)
+				for (i = 0, j = 0; dep && dep->type; i++, dep++) {
+					if (dep->type != DEPEND)
 						continue;
 					str = pkg_depend_str(pkg, i);
 					fprintf(fp, "%s %s", j == 0 ? "" : ",",
@@ -725,11 +682,13 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 		} else if (strcasecmp(field, "Priority") == 0) {
 			fprintf(fp, "Priority: %s\n", pkg_get_string(pkg, PKG_PRIORITY));
 		} else if (strcasecmp(field, "Provides") == 0) {
-			if (pkg->provides_count > 1) {
+			ab_pkg = pkg_get_ptr(pkg, PKG_PROVIDES);
+			if (ab_pkg && ab_pkg[0] && ab_pkg[1]) {
 				fprintf(fp, "Provides:");
-				for (i = 1; i < pkg->provides_count; i++) {
-					fprintf(fp, "%s %s", i == 1 ? "" : ",",
-						pkg->provides[i]->name);
+				for (i = 0, ab_pkg++; *ab_pkg; i++, ab_pkg++) {
+					fprintf(fp, "%s %s", i == 0 ? "" : ",",
+						(*ab_pkg)->name);
+					ab_pkg++;
 				}
 				fprintf(fp, "\n");
 			}
@@ -740,19 +699,21 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 	case 'r':
 	case 'R':
 		if (strcasecmp(field, "Replaces") == 0) {
-			if (pkg->replaces_count) {
+			ab_pkg = pkg_get_ptr(pkg, PKG_REPLACES);
+			if (ab_pkg && *ab_pkg) {
 				fprintf(fp, "Replaces:");
-				for (i = 0; i < pkg->replaces_count; i++) {
+				for (i = 0; *ab_pkg; i++, ab_pkg++) {
 					fprintf(fp, "%s %s", i == 0 ? "" : ",",
-						pkg->replaces[i]->name);
+						(*ab_pkg)->name);
 				}
 				fprintf(fp, "\n");
 			}
 		} else if (strcasecmp(field, "Recommends") == 0) {
-			if (pkg->recommends_count) {
+			dep = pkg_get_depends(pkg, RECOMMEND);
+			if (dep) {
 				fprintf(fp, "Recommends:");
-				for (j = 0, i = 0; i < depends_count; i++) {
-					if (pkg->depends[i].type != RECOMMEND)
+				for (j = 0, i = 0; dep && dep->type; i++, dep++) {
+					if (dep->type != RECOMMEND)
 						continue;
 					str = pkg_depend_str(pkg, i);
 					fprintf(fp, "%s %s", j == 0 ? "" : ",",
@@ -798,10 +759,11 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 				pkg_state_status_to_str(pkg->state_status));
 			free(pflag);
 		} else if (strcasecmp(field, "Suggests") == 0) {
-			if (pkg->suggests_count) {
+			dep = pkg_get_depends(pkg, SUGGEST);
+			if (dep) {
 				fprintf(fp, "Suggests:");
-				for (j = 0, i = 0; i < depends_count; i++) {
-					if (pkg->depends[i].type != SUGGEST)
+				for (j = 0, i = 0; dep && dep->type; i++, dep++) {
+					if (dep->type != SUGGEST)
 						continue;
 					str = pkg_depend_str(pkg, i);
 					fprintf(fp, "%s %s", j == 0 ? "" : ",",
@@ -949,8 +911,8 @@ int pkg_compare_versions(const pkg_t * pkg, const pkg_t * ref_pkg)
 {
 	unsigned int epoch1 = (unsigned int) pkg_get_int(pkg, PKG_EPOCH);
 	unsigned int epoch2 = (unsigned int) pkg_get_int(ref_pkg, PKG_EPOCH);
-	char *revision1 = pkg_get_ptr(pkg, PKG_REVISION);
-	char *revision2 = pkg_get_ptr(ref_pkg, PKG_REVISION);
+	char *revision1 = pkg_get_string(pkg, PKG_REVISION);
+	char *revision2 = pkg_get_string(ref_pkg, PKG_REVISION);
 	const char *version1 = pkg_get_string(pkg, PKG_VERSION);
 	const char *version2 = pkg_get_string(ref_pkg, PKG_VERSION);
 	int r;
@@ -1012,6 +974,7 @@ int pkg_name_version_and_architecture_compare(const void *p1, const void *p2)
 	const pkg_t * b = *(const pkg_t **)p2;
 	int namecmp;
 	int vercmp;
+	int arch_prio1, arch_prio2;
 	if (!a->name || !b->name) {
 		opkg_msg(ERROR, "Internal error: a->name=%p, b->name=%p.\n",
 			 a->name, b->name);
@@ -1024,15 +987,17 @@ int pkg_name_version_and_architecture_compare(const void *p1, const void *p2)
 	vercmp = pkg_compare_versions(a, b);
 	if (vercmp)
 		return vercmp;
-	if (!a->arch_priority || !b->arch_priority) {
+	arch_prio1 = pkg_get_int(a, PKG_ARCH_PRIORITY);
+	arch_prio2 = pkg_get_int(b, PKG_ARCH_PRIORITY);
+	if (!arch_prio1 || !arch_prio2) {
 		opkg_msg(ERROR,
 			 "Internal error: a->arch_priority=%i b->arch_priority=%i.\n",
-			 a->arch_priority, b->arch_priority);
+			 arch_prio1, arch_prio2);
 		return 0;
 	}
-	if (a->arch_priority > b->arch_priority)
+	if (arch_prio1 > arch_prio2)
 		return 1;
-	if (a->arch_priority < b->arch_priority)
+	if (arch_prio1 < arch_prio2)
 		return -1;
 	return 0;
 }
@@ -1055,7 +1020,7 @@ char *pkg_version_str_alloc(pkg_t * pkg)
 	char *version, *revptr;
 	unsigned int epoch = (unsigned int) pkg_get_int(pkg, PKG_EPOCH);
 
-	revptr = pkg_get_ptr(pkg, PKG_REVISION);
+	revptr = pkg_get_string(pkg, PKG_REVISION);
 	verstr = pkg_get_string(pkg, PKG_VERSION);
 
 	if (epoch) {
@@ -1242,14 +1207,17 @@ void pkg_remove_installed_files_list(pkg_t * pkg)
 conffile_t *pkg_get_conffile(pkg_t * pkg, const char *file_name)
 {
 	conffile_list_elt_t *iter;
+	conffile_list_t *cl;
 	conffile_t *conffile;
 
 	if (pkg == NULL) {
 		return NULL;
 	}
 
-	for (iter = nv_pair_list_first(&pkg->conffiles); iter;
-	     iter = nv_pair_list_next(&pkg->conffiles, iter)) {
+	cl = pkg_get_ptr(pkg, PKG_CONFFILES);
+
+	for (iter = cl ? nv_pair_list_first(cl) : NULL; iter;
+	     iter = nv_pair_list_next(cl, iter)) {
 		conffile = (conffile_t *) iter->data;
 
 		if (strcmp(conffile->name, file_name) == 0) {
@@ -1265,6 +1233,7 @@ int pkg_run_script(pkg_t * pkg, const char *script, const char *args)
 	int err;
 	char *path;
 	char *cmd;
+	char *tmp_unpack_dir;
 
 	if (conf->noaction)
 		return 0;
@@ -1278,7 +1247,7 @@ int pkg_run_script(pkg_t * pkg, const char *script, const char *args)
 	}
 
 	/* Installed packages have scripts in pkg->dest->info_dir, uninstalled packages
-	   have scripts in pkg->tmp_unpack_dir. */
+	   have scripts in tmp_unpack_dir. */
 	if (pkg->state_status == SS_INSTALLED
 	    || pkg->state_status == SS_UNPACKED) {
 		if (pkg->dest == NULL) {
@@ -1289,13 +1258,14 @@ int pkg_run_script(pkg_t * pkg, const char *script, const char *args)
 		sprintf_alloc(&path, "%s/%s.%s", pkg->dest->info_dir, pkg->name,
 			      script);
 	} else {
-		if (pkg->tmp_unpack_dir == NULL) {
+		tmp_unpack_dir = pkg_get_string(pkg, PKG_TMP_UNPACK_DIR);
+		if (tmp_unpack_dir == NULL) {
 			opkg_msg(ERROR,
 				 "Internal error: %s has a NULL tmp_unpack_dir.\n",
 				 pkg->name);
 			return -1;
 		}
-		sprintf_alloc(&path, "%s/%s", pkg->tmp_unpack_dir, script);
+		sprintf_alloc(&path, "%s/%s", tmp_unpack_dir, script);
 	}
 
 	opkg_msg(INFO, "Running script %s.\n", path);

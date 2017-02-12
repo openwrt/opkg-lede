@@ -141,7 +141,8 @@ pkg_hash_add_from_file(const char *file_name,
 			continue;
 		}
 
-		if (!pkg_get_string(pkg, PKG_ARCHITECTURE) || !pkg->arch_priority) {
+		if (!pkg_get_string(pkg, PKG_ARCHITECTURE) ||
+		    !pkg_get_int(pkg, PKG_ARCH_PRIORITY)) {
 			char *version_str = pkg_version_str_alloc(pkg);
 			opkg_msg(NOTICE, "Package %s version %s has no "
 				 "valid architecture, ignoring.\n",
@@ -237,6 +238,7 @@ pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 	int nprovides = 0;
 	int nmatching = 0;
 	int wrong_arch_found = 0;
+	int arch_priority;
 	pkg_vec_t *matching_pkgs;
 	abstract_pkg_vec_t *matching_apkgs;
 	abstract_pkg_vec_t *provided_apkg_vec;
@@ -317,13 +319,15 @@ pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 			/* count packages matching max arch priority and keep track of last one */
 			for (j = 0; j < vec->len; j++) {
 				pkg_t *maybe = vec->pkgs[j];
+				arch_priority = pkg_get_int(maybe, PKG_ARCH_PRIORITY);
+
 				opkg_msg(DEBUG,
 					 "%s arch=%s arch_priority=%d version=%s.\n",
 					 maybe->name, pkg_get_string(maybe, PKG_ARCHITECTURE),
-					 maybe->arch_priority, pkg_get_string(maybe, PKG_VERSION));
+					 arch_priority, pkg_get_string(maybe, PKG_VERSION));
 				/* We make sure not to add the same package twice. Need to search for the reason why
 				   they show up twice sometimes. */
-				if ((maybe->arch_priority > 0)
+				if ((arch_priority > 0)
 				    &&
 				    (!pkg_vec_contains(matching_pkgs, maybe))) {
 					max_count++;
@@ -389,9 +393,10 @@ pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 		int prio = 0;
 		for (i = 0; i < matching_pkgs->len; i++) {
 			pkg_t *matching = matching_pkgs->pkgs[i];
-			if (matching->arch_priority > prio) {
+			arch_priority = pkg_get_int(matching, PKG_ARCH_PRIORITY);
+			if (arch_priority > prio) {
 				priorized_matching = matching;
-				prio = matching->arch_priority;
+				prio = arch_priority;
 				opkg_msg(DEBUG, "Match %s with priority %i.\n",
 					 matching->name, prio);
 			}
@@ -647,6 +652,8 @@ void hash_insert_pkg(pkg_t * pkg, int set_status)
 	buildDepends(pkg);
 
 	buildProvides(ab_pkg, pkg);
+
+	init_providelist(pkg, NULL);
 
 	/* Need to build the conflicts graph before replaces for correct
 	 * calculation of replaced_by relation.

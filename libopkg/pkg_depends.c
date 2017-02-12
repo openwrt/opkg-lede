@@ -59,9 +59,10 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 {
 	pkg_t *satisfier_entry_pkg;
 	int i, j, k;
-	int count, found;
+	int found;
 	char **the_lost;
 	abstract_pkg_t *ab_pkg;
+	compound_depend_t *compound_depend;
 
 	/*
 	 * this is a setup to check for redundant/cyclic dependency checks,
@@ -78,11 +79,10 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 	} else {
 		ab_pkg->dependencies_checked = 1;	/* mark it for subsequent visits */
 	}
-	 /**/
-	    count =
-	    pkg->pre_depends_count + pkg->depends_count +
-	    pkg->recommends_count + pkg->suggests_count;
-	if (!count) {
+
+	compound_depend = pkg_get_ptr(pkg, PKG_DEPENDS);
+
+	if (!compound_depend || !compound_depend->type) {
 		*unresolved = NULL;
 		return 0;
 	}
@@ -90,8 +90,7 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 	the_lost = NULL;
 
 	/* foreach dependency */
-	for (i = 0; i < count; i++) {
-		compound_depend_t *compound_depend = &pkg->depends[i];
+	for (; compound_depend && compound_depend->type; compound_depend++) {
 		depend_t **possible_satisfiers =
 		    compound_depend->possibilities;;
 		found = 0;
@@ -322,34 +321,30 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 */
 static int is_pkg_a_replaces(pkg_t * pkg_scout, pkg_t * pkg)
 {
-	int i;
-	int replaces_count = pkg->replaces_count;
-	abstract_pkg_t **replaces;
+	abstract_pkg_t **replaces = pkg_get_ptr(pkg, PKG_REPLACES);
 
-	if (pkg->replaces_count == 0)	// No replaces, it's surely a conflict
+	if (!replaces || !*replaces)
 		return 0;
 
-	replaces = pkg->replaces;
-
-	for (i = 0; i < replaces_count; i++) {
-		if (strcmp(pkg_scout->name, pkg->replaces[i]->name) == 0) {	// Found
+	while (*replaces) {
+		if (strcmp(pkg_scout->name, (*replaces)->name) == 0) {	// Found
 			opkg_msg(DEBUG2, "Seems I've found a replace %s %s\n",
-				 pkg_scout->name, pkg->replaces[i]->name);
+				 pkg_scout->name, (*replaces)->name);
 			return 1;
 		}
+		replaces++;
 	}
-	return 0;
 
+	return 0;
 }
 
 pkg_vec_t *pkg_hash_fetch_conflicts(pkg_t * pkg)
 {
 	pkg_vec_t *installed_conflicts, *test_vec;
-	compound_depend_t *conflicts;
+	compound_depend_t *conflicts, *conflict;
 	depend_t **possible_satisfiers;
 	depend_t *possible_satisfier;
-	int i, j, k;
-	int count;
+	int j, k;
 	abstract_pkg_t *ab_pkg;
 	pkg_t **pkg_scouts;
 	pkg_t *pkg_scout;
@@ -364,17 +359,14 @@ pkg_vec_t *pkg_hash_fetch_conflicts(pkg_t * pkg)
 		return (pkg_vec_t *) NULL;
 	}
 
-	conflicts = pkg->conflicts;
+	conflicts = pkg_get_ptr(pkg, PKG_CONFLICTS);
 	if (!conflicts) {
 		return (pkg_vec_t *) NULL;
 	}
 	installed_conflicts = pkg_vec_alloc();
 
-	count = pkg->conflicts_count;
-
 	/* foreach conflict */
-	for (i = 0; i < pkg->conflicts_count; i++) {
-
+	for (conflict = conflicts; conflict->type; conflict++ ) {
 		possible_satisfiers = conflicts->possibilities;
 
 		/* foreach possible satisfier */
@@ -537,17 +529,15 @@ static int is_pkg_in_pkg_vec(pkg_vec_t * vec, pkg_t * pkg)
  */
 int pkg_replaces(pkg_t * pkg, pkg_t * replacee)
 {
-	abstract_pkg_t **replaces = pkg->replaces;
-	int replaces_count = pkg->replaces_count;
-	int replacee_provides_count = replacee->provides_count;
-	int i, j;
-	for (i = 0; i < replaces_count; i++) {
-		abstract_pkg_t *abstract_replacee = replaces[i];
-		for (j = 0; j < replacee_provides_count; j++) {
-			if (replacee->provides[j] == abstract_replacee)
+	abstract_pkg_t **replaces = pkg_get_ptr(pkg, PKG_REPLACES);
+	abstract_pkg_t **provides = pkg_get_ptr(replacee, PKG_PROVIDES);
+	abstract_pkg_t **r, **p;
+
+	for (r = replaces; r && *r; r++)
+		for (p = provides; p && *p; p++)
+			if (*r == *p)
 				return 1;
-		}
-	}
+
 	return 0;
 }
 
@@ -557,12 +547,14 @@ int pkg_replaces(pkg_t * pkg, pkg_t * replacee)
  */
 int pkg_conflicts_abstract(pkg_t * pkg, abstract_pkg_t * conflictee)
 {
-	compound_depend_t *conflicts = pkg->conflicts;
-	int conflicts_count = pkg->conflicts_count;
-	int i, j;
-	for (i = 0; i < conflicts_count; i++) {
-		int possibility_count = conflicts[i].possibility_count;
-		struct depend **possibilities = conflicts[i].possibilities;
+	compound_depend_t *conflicts, *conflict;
+
+	conflicts = pkg_get_ptr(pkg, PKG_CONFLICTS);
+
+	int j;
+	for (conflict = conflicts; conflict->type; conflict++) {
+		int possibility_count = conflict->possibility_count;
+		struct depend **possibilities = conflict->possibilities;
 		for (j = 0; j < possibility_count; j++) {
 			if (possibilities[j]->pkg == conflictee) {
 				return 1;
@@ -578,22 +570,22 @@ int pkg_conflicts_abstract(pkg_t * pkg, abstract_pkg_t * conflictee)
  */
 int pkg_conflicts(pkg_t * pkg, pkg_t * conflictee)
 {
-	compound_depend_t *conflicts = pkg->conflicts;
-	int conflicts_count = pkg->conflicts_count;
-	abstract_pkg_t **conflictee_provides = conflictee->provides;
-	int conflictee_provides_count = conflictee->provides_count;
-	int i, j, k;
+	int j;
 	int possibility_count;
 	struct depend **possibilities;
-	abstract_pkg_t *possibility;
+	compound_depend_t *conflicts, *conflict;
+	abstract_pkg_t **conflictee_provides, **provider, *possibility;
 
-	for (i = 0; i < conflicts_count; i++) {
-		possibility_count = conflicts[i].possibility_count;
-		possibilities = conflicts[i].possibilities;
+	conflicts = pkg_get_ptr(pkg, PKG_CONFLICTS);
+	conflictee_provides = pkg_get_ptr(conflictee, PKG_PROVIDES);
+
+	for (conflict = conflicts; conflict->type; conflict++) {
+		possibility_count = conflict->possibility_count;
+		possibilities = conflict->possibilities;
 		for (j = 0; j < possibility_count; j++) {
 			possibility = possibilities[j]->pkg;
-			for (k = 0; k < conflictee_provides_count; k++) {
-				if (possibility == conflictee_provides[k]) {
+			for (provider = conflictee_provides; provider && *provider; provider++) {
+				if (possibility == *provider) {
 					return 1;
 				}
 			}
@@ -647,8 +639,123 @@ char **add_unresolved_dep(pkg_t * pkg, char **the_lost, int ref_ndx)
 	return resized;
 }
 
+abstract_pkg_t **init_providelist(pkg_t *pkg, int *count)
+{
+	abstract_pkg_t *ab_pkg;
+	abstract_pkg_t **provides = pkg_get_ptr(pkg, PKG_PROVIDES);
+
+	if (!provides) {
+		provides = calloc(2, sizeof(abstract_pkg_t *));
+
+		if (!provides) {
+			if (count)
+				*count = 0;
+
+			return NULL;
+		}
+
+		ab_pkg = ensure_abstract_pkg_by_name(pkg->name);
+
+		if (!ab_pkg->pkgs)
+			ab_pkg->pkgs = pkg_vec_alloc();
+
+		abstract_pkg_vec_insert(ab_pkg->provided_by, ab_pkg);
+
+		provides[0] = ab_pkg;
+		provides[1] = NULL;
+
+		if (count)
+			*count = 2;
+
+		pkg_set_ptr(pkg, PKG_PROVIDES, provides);
+	}
+	else if (count) {
+		for (*count = 1; *provides; provides++)
+			(*count)++;
+	}
+
+	return provides;
+}
+
+void parse_providelist(pkg_t *pkg, char *list)
+{
+	int count = 0;
+	char *item, *tok;
+	abstract_pkg_t *ab_pkg, *provided_abpkg, **tmp, **provides;
+
+	provides = init_providelist(pkg, &count);
+	ab_pkg = ensure_abstract_pkg_by_name(pkg->name);
+
+	if (!provides || !ab_pkg)
+		return;
+
+	for (item = strtok_r(list, ", ", &tok); item;
+	     count++, item = strtok_r(NULL, ", ", &tok)) {
+		tmp = realloc(provides, sizeof(abstract_pkg_t *) * (count + 1));
+
+		if (!tmp)
+			break;
+
+		provided_abpkg = ensure_abstract_pkg_by_name(item);
+
+		abstract_pkg_vec_insert(provided_abpkg->provided_by, ab_pkg);
+
+		provides = tmp;
+		provides[count - 1] = provided_abpkg;
+	}
+
+	provides[count - 1] = NULL;
+
+	pkg_set_ptr(pkg, PKG_PROVIDES, provides);
+}
+
+void parse_replacelist(pkg_t *pkg, char *list)
+{
+	int count;
+	char *item, *tok;
+	abstract_pkg_t *ab_pkg, *old_abpkg, **tmp, **replaces = NULL;
+
+	ab_pkg = ensure_abstract_pkg_by_name(pkg->name);
+
+	if (!ab_pkg->pkgs)
+		ab_pkg->pkgs = pkg_vec_alloc();
+
+	abstract_pkg_vec_insert(ab_pkg->provided_by, ab_pkg);
+
+	for (count = 1, item = strtok_r(list, ", ", &tok);
+	     item;
+	     count++, item = strtok_r(NULL, ", ", &tok), count++) {
+		tmp = realloc(replaces, sizeof(abstract_pkg_t *) * (count + 1));
+
+		if (!tmp)
+			break;
+
+		old_abpkg = ensure_abstract_pkg_by_name(item);
+
+		if (!old_abpkg->replaced_by)
+			old_abpkg->replaced_by = abstract_pkg_vec_alloc();
+
+		/* if a package pkg both replaces and conflicts old_abpkg,
+		 * then add it to the replaced_by vector so that old_abpkg
+		 * will be upgraded to ab_pkg automatically */
+		if (pkg_conflicts_abstract(pkg, old_abpkg))
+			abstract_pkg_vec_insert(old_abpkg->replaced_by, ab_pkg);
+
+		replaces = tmp;
+		replaces[count - 1] = old_abpkg;
+	}
+
+	if (!replaces)
+		return;
+
+	replaces[count - 1] = NULL;
+
+	pkg_set_ptr(pkg, PKG_REPLACES, replaces);
+}
+
 void buildProvides(abstract_pkg_t * ab_pkg, pkg_t * pkg)
 {
+#if 0
 	int i;
 
 	/* every pkg provides itself */
@@ -668,12 +775,14 @@ void buildProvides(abstract_pkg_t * ab_pkg, pkg_t * pkg)
 	}
 	if (pkg->provides_str)
 		free(pkg->provides_str);
+#endif
 }
 
 void buildConflicts(pkg_t * pkg)
 {
+	/*
 	int i;
-	compound_depend_t *conflicts;
+	compound_depend_t *conflicts, *conflict;
 
 	if (!pkg->conflicts_count)
 		return;
@@ -688,10 +797,12 @@ void buildConflicts(pkg_t * pkg)
 	}
 	if (pkg->conflicts_str)
 		free(pkg->conflicts_str);
+		*/
 }
 
 void buildReplaces(abstract_pkg_t * ab_pkg, pkg_t * pkg)
 {
+#if 0
 	int i;
 
 	if (!pkg->replaces_count)
@@ -717,10 +828,62 @@ void buildReplaces(abstract_pkg_t * ab_pkg, pkg_t * pkg)
 
 	if (pkg->replaces_str)
 		free(pkg->replaces_str);
+#endif
+}
+
+void parse_deplist(pkg_t *pkg, enum depend_type type, char *list)
+{
+	int id, count;
+	char *item, *tok;
+	compound_depend_t *tmp, *deps;
+
+	switch (type)
+	{
+	case DEPEND:
+	case PREDEPEND:
+	case RECOMMEND:
+	case SUGGEST:
+	case GREEDY_DEPEND:
+		id = PKG_DEPENDS;
+		break;
+
+	case CONFLICTS:
+		id = PKG_CONFLICTS;
+		break;
+
+	default:
+		return;
+	}
+
+	deps = pkg_get_ptr(pkg, id);
+
+	for (tmp = deps, count = 1; tmp && tmp->type; tmp++)
+		count++;
+
+	for (item = strtok_r(list, ",", &tok); item; item = strtok_r(NULL, ",", &tok), count++) {
+		tmp = realloc(deps, sizeof(compound_depend_t) * (count + 1));
+
+		if (!tmp)
+			break;
+
+		deps = tmp;
+
+		memset(deps + count - 1, 0, sizeof(compound_depend_t));
+		parseDepends(deps + count - 1, item);
+
+		deps[count - 1].type = type;
+	}
+
+	if (!deps)
+		return;
+
+	memset(deps + count - 1, 0, sizeof(compound_depend_t));
+	pkg_set_ptr(pkg, id, deps);
 }
 
 void buildDepends(pkg_t * pkg)
 {
+#if 0
 	unsigned int count;
 	int i;
 	compound_depend_t *depends;
@@ -767,6 +930,8 @@ void buildDepends(pkg_t * pkg)
 	}
 	if (pkg->suggests_str)
 		free(pkg->suggests_str);
+
+#endif
 }
 
 const char *constraint_to_str(enum version_constraint c)
@@ -798,11 +963,19 @@ char *pkg_depend_str(pkg_t * pkg, int idx)
 	int i;
 	unsigned int len;
 	char *str;
-	compound_depend_t *cdep;
+	compound_depend_t *cdep = NULL, *p;
 	depend_t *dep;
 
+	for (i = 0, p = pkg_get_ptr(pkg, PKG_DEPENDS); p && p->type; i++, p++)
+		if (i == idx) {
+			cdep = p;
+			break;
+		}
+
+	if (!cdep)
+		return NULL;
+
 	len = 0;
-	cdep = &pkg->depends[idx];
 
 	/* calculate string length */
 	for (i = 0; i < cdep->possibility_count; i++) {
@@ -846,16 +1019,12 @@ char *pkg_depend_str(pkg_t * pkg, int idx)
 void buildDependedUponBy(pkg_t * pkg, abstract_pkg_t * ab_pkg)
 {
 	compound_depend_t *depends;
-	int count, othercount;
-	int i, j;
+	int othercount;
+	int j;
 	abstract_pkg_t *ab_depend;
 	abstract_pkg_t **temp;
 
-	count = pkg->pre_depends_count +
-	    pkg->depends_count + pkg->recommends_count + pkg->suggests_count;
-
-	for (i = 0; i < count; i++) {
-		depends = &pkg->depends[i];
+	for (depends = pkg_get_ptr(pkg, PKG_DEPENDS); depends && depends->type; depends++) {
 		if (depends->type != PREDEPEND
 		    && depends->type != DEPEND && depends->type != RECOMMEND)
 			continue;
@@ -898,97 +1067,77 @@ static depend_t *depend_init(void)
 
 static int parseDepends(compound_depend_t * compound_depend, char *depend_str)
 {
-	char *pkg_name, buffer[2048];
-	unsigned int num_of_ors = 0;
 	int i;
-	char *src, *dest;
-	depend_t **possibilities;
-
-	/* first count the number of ored possibilities for satisfying dependency */
-	src = depend_str;
-	while (*src)
-		if (*src++ == '|')
-			num_of_ors++;
+	char *depend, *name, *vstr, *rest, *tok = NULL;
+	depend_t **possibilities = NULL, **tmp;
 
 	compound_depend->type = DEPEND;
 
-	compound_depend->possibility_count = num_of_ors + 1;
-	possibilities = xcalloc((num_of_ors + 1), sizeof(depend_t *));
-	compound_depend->possibilities = possibilities;
+	for (i = 0, depend = strtok_r(depend_str, "|", &tok); depend; i++, depend = strtok_r(NULL, "|", &tok)) {
+		name = strtok(depend, " ");
+		rest = strtok(NULL, "\n");
 
-	src = depend_str;
-	for (i = 0; i < num_of_ors + 1; i++) {
+		tmp = realloc(possibilities, sizeof(tmp) * (i + 1));
+
+		if (!tmp)
+			return -1;
+
+		possibilities = tmp;
 		possibilities[i] = depend_init();
-		/* gobble up just the name first */
-		dest = buffer;
-		while (*src &&
-		       !isspace(*src) &&
-		       (*src != '(') && (*src != '*') && (*src != '|'))
-			*dest++ = *src++;
-		*dest = '\0';
-		pkg_name = trim_xstrdup(buffer);
+		possibilities[i]->pkg = ensure_abstract_pkg_by_name(name);
 
-		/* now look at possible version info */
+		if (rest && *rest == '(') {
+			vstr = strtok(rest + 1, ")");
 
-		/* skip to next chars */
-		if (isspace(*src))
-			while (*src && isspace(*src))
-				src++;
-
-		/* extract constraint and version */
-		if (*src == '(') {
-			src++;
-			if (!strncmp(src, "<<", 2)) {
+			if (!strncmp(vstr, "<<", 2)) {
 				possibilities[i]->constraint = EARLIER;
-				src += 2;
-			} else if (!strncmp(src, "<=", 2)) {
+				vstr += 2;
+			} else if (!strncmp(vstr, "<=", 2)) {
 				possibilities[i]->constraint = EARLIER_EQUAL;
-				src += 2;
-			} else if (!strncmp(src, ">=", 2)) {
+				vstr += 2;
+			} else if (!strncmp(vstr, ">=", 2)) {
 				possibilities[i]->constraint = LATER_EQUAL;
-				src += 2;
-			} else if (!strncmp(src, ">>", 2)) {
+				vstr += 2;
+			} else if (!strncmp(vstr, ">>", 2)) {
 				possibilities[i]->constraint = LATER;
-				src += 2;
-			} else if (!strncmp(src, "=", 1)) {
+				vstr += 2;
+			} else if (!strncmp(vstr, "=", 1)) {
 				possibilities[i]->constraint = EQUAL;
-				src++;
+				vstr++;
 			}
 			/* should these be here to support deprecated designations; dpkg does */
-			else if (!strncmp(src, "<", 1)) {
+			else if (!strncmp(vstr, "<", 1)) {
 				possibilities[i]->constraint = EARLIER_EQUAL;
-				src++;
-			} else if (!strncmp(src, ">", 1)) {
+				vstr++;
+			} else if (!strncmp(vstr, ">", 1)) {
 				possibilities[i]->constraint = LATER_EQUAL;
-				src++;
+				vstr++;
 			}
 
-			/* now we have any constraint, pass space to version string */
-			while (isspace(*src))
-				src++;
-
-			/* this would be the version string */
-			dest = buffer;
-			while (*src && *src != ')')
-				*dest++ = *src++;
-			*dest = '\0';
-
-			possibilities[i]->version = trim_xstrdup(buffer);
+			possibilities[i]->version = trim_xstrdup(vstr);
+			rest = strtok(NULL, " ");
 		}
-		/* hook up the dependency to its abstract pkg */
-		possibilities[i]->pkg = ensure_abstract_pkg_by_name(pkg_name);
+		else {
+			rest = strtok(rest, " ");
+		}
 
-		free(pkg_name);
-
-		/* now get past the ) and any possible | chars */
-		while (*src &&
-		       (isspace(*src) || (*src == ')') || (*src == '|')))
-			src++;
-		if (*src == '*') {
+		if (rest && *rest == '*')
 			compound_depend->type = GREEDY_DEPEND;
-			src++;
-		}
 	}
 
+	compound_depend->possibility_count = i;
+	compound_depend->possibilities = possibilities;
+
 	return 0;
+}
+
+compound_depend_t *pkg_get_depends(pkg_t *pkg, enum depend_type type)
+{
+	compound_depend_t *dep;
+
+	for (dep = pkg_get_ptr(pkg, PKG_DEPENDS); dep && dep->type; dep++)
+		if (type == UNSPEC || dep->type == type)
+			return dep;
+
+	return NULL;
 }

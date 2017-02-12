@@ -90,12 +90,19 @@ enum pkg_fields {
 	PKG_VERSION,
 	PKG_REVISION,
 	PKG_ARCHITECTURE,
+	PKG_ARCH_PRIORITY,
 	PKG_DESCRIPTION,
 	PKG_MD5SUM,
 	PKG_SHA256SUM,
 	PKG_SIZE,
 	PKG_INSTALLED_SIZE,
 	PKG_INSTALLED_TIME,
+	PKG_TMP_UNPACK_DIR,
+	PKG_REPLACES,
+	PKG_PROVIDES,
+	PKG_DEPENDS,
+	PKG_CONFLICTS,
+	PKG_CONFFILES,
 };
 
 struct abstract_pkg {
@@ -138,36 +145,13 @@ struct pkg {
 	char *name;
 	pkg_src_t *src;
 	pkg_dest_t *dest;
-	pkg_state_want_t state_want;
-	pkg_state_flag_t state_flag;
-	pkg_state_status_t state_status;
-	char **depends_str;
-	unsigned int depends_count;
-	char **pre_depends_str;
-	unsigned int pre_depends_count;
-	char **recommends_str;
-	unsigned int recommends_count;
-	char **suggests_str;
-	unsigned int suggests_count;
+	pkg_state_want_t state_want:3;
+	pkg_state_flag_t state_flag:10;
+	pkg_state_status_t state_status:4;
 	struct active_list list;	/* Used for installing|upgrading */
-	compound_depend_t *depends;
-
-	char **conflicts_str;
-	compound_depend_t *conflicts;
-	unsigned int conflicts_count;
-
-	char **replaces_str;
-	unsigned int replaces_count;
-	abstract_pkg_t **replaces;
-
-	char **provides_str;
-	unsigned int provides_count;
-	abstract_pkg_t **provides;
 
 	abstract_pkg_t *parent;
 
-	char *tmp_unpack_dir;
-	conffile_list_t conffiles;
 	/* As pointer for lazy evaluation */
 	str_list_t *installed_files;
 	/* XXX: CLEANUP: I'd like to perhaps come up with a better
@@ -175,7 +159,6 @@ struct pkg {
 	   installed_files list was being freed from an inner loop while
 	   still being used within an outer loop. */
 	int installed_files_ref_cnt;
-	int arch_priority;
 
 	int essential:1;
 /* Adding this flag, to "force" opkg to choose a "provided_by_hand" package, if there are multiple choice */
@@ -215,12 +198,13 @@ static inline char *pkg_get_string(const pkg_t *pkg, int id)
 
 static inline void * pkg_set_ptr(pkg_t *pkg, int id, void *ptr)
 {
-	return pkg_set_raw(pkg, id, ptr, sizeof(ptr));
+	return ptr ? *(void **) pkg_set_raw(pkg, id, &ptr, sizeof(ptr)) : NULL;
 }
 
 static inline void * pkg_get_ptr(const pkg_t *pkg, int id)
 {
-	return pkg_get_raw(pkg, id);
+	void **ptr = pkg_get_raw(pkg, id);
+	return ptr ? *ptr : NULL;
 }
 
 abstract_pkg_t *abstract_pkg_new(void);
