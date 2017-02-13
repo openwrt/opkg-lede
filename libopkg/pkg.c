@@ -80,8 +80,6 @@ static void pkg_init(pkg_t * pkg)
 	pkg->state_flag = SF_OK;
 	pkg->state_status = SS_NOT_INSTALLED;
 
-	active_list_init(&pkg->list);
-
 	pkg->installed_files = NULL;
 	pkg->installed_files_ref_cnt = 0;
 	pkg->essential = 0;
@@ -188,8 +186,6 @@ void pkg_deinit(pkg_t * pkg)
 	pkg->state_want = SW_UNKNOWN;
 	pkg->state_flag = SF_OK;
 	pkg->state_status = SS_NOT_INSTALLED;
-
-	active_list_clear(&pkg->list);
 
 	deps = pkg_get_ptr(pkg, PKG_DEPENDS);
 

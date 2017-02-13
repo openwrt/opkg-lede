@@ -148,7 +148,6 @@ struct pkg {
 	pkg_state_want_t state_want:3;
 	pkg_state_flag_t state_flag:10;
 	pkg_state_status_t state_status:4;
-	struct active_list list;	/* Used for installing|upgrading */
 
 	abstract_pkg_t *parent;
 

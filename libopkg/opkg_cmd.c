@@ -665,7 +665,7 @@ static int opkg_list_upgradable_cmd(int argc, char **argv)
 	char *old_v, *new_v;
 	for (node = active_list_next(head, head); node;
 	     node = active_list_next(head, node)) {
-		_old_pkg = list_entry(node, pkg_t, list);
+		_old_pkg = node->pkg;
 		_new_pkg =
 		    pkg_hash_fetch_best_installation_candidate_by_name
 		    (_old_pkg->name);

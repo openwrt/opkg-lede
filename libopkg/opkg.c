@@ -707,7 +707,7 @@ opkg_list_upgradable_packages(opkg_package_callback_t callback, void *user_data)
 	head = prepare_upgrade_list();
 	for (node = active_list_next(head, head); node;
 	     node = active_list_next(head, node)) {
-		old = list_entry(node, pkg_t, list);
+		old = node->pkg;
 		new =
 		    pkg_hash_fetch_best_installation_candidate_by_name(old->
 								       name);

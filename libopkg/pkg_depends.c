@@ -763,7 +763,6 @@ void buildProvides(abstract_pkg_t * ab_pkg, pkg_t * pkg)
 	abstract_pkg_vec_insert(ab_pkg->provided_by, ab_pkg);
 	pkg->provides = xcalloc(pkg->provides_count, sizeof(abstract_pkg_t *));
 	pkg->provides[0] = ab_pkg;
-
 	for (i = 1; i < pkg->provides_count; i++) {
 		abstract_pkg_t *provided_abpkg =
 		    ensure_abstract_pkg_by_name(pkg->provides_str[i - 1]);

@@ -82,7 +82,7 @@ static void
 pkg_hash_check_installed_pkg_helper(const char *pkg_name, void *entry,
 				    void *data)
 {
-	struct active_list *head = (struct active_list *)data;
+	struct active_list *item, *head = (struct active_list *)data;
 	abstract_pkg_t *ab_pkg = (abstract_pkg_t *) entry;
 	pkg_vec_t *pkg_vec = ab_pkg->pkgs;
 	int j;
@@ -93,8 +93,12 @@ pkg_hash_check_installed_pkg_helper(const char *pkg_name, void *entry,
 	for (j = 0; j < pkg_vec->len; j++) {
 		pkg_t *pkg = pkg_vec->pkgs[j];
 		if (pkg->state_status == SS_INSTALLED
-		    || pkg->state_status == SS_UNPACKED)
-			active_list_add(head, &pkg->list);
+		    || pkg->state_status == SS_UNPACKED) {
+			printf("alloc item for pkg=%p\n", pkg);
+			item = active_list_head_new();
+			item->pkg = pkg;
+			active_list_add(head, item);
+		}
 	}
 }
 
@@ -114,7 +118,7 @@ struct active_list *prepare_upgrade_list(void)
 		pkg_t *old, *new;
 		int cmp;
 
-		old = list_entry(node, pkg_t, list);
+		old = node->pkg;
 		new =
 		    pkg_hash_fetch_best_installation_candidate_by_name(old->
 								       name);
@@ -125,7 +129,7 @@ struct active_list *prepare_upgrade_list(void)
 		cmp = pkg_compare_versions(old, new);
 
 		if (cmp < 0) {
-			node = active_list_move_node(all, head, &old->list);
+			node = active_list_move_node(all, head, node);
 		}
 	}
 	active_list_head_delete(all);

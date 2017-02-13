@@ -19,11 +19,13 @@
 #define ACTIVE_LIST_H
 
 #include "list.h"
+#include "pkg.h"
 
 struct active_list {
 	struct list_head node;
 	struct list_head depend;
 	struct active_list *depended;
+	pkg_t *pkg;
 };
 
 struct active_list *active_list_head_new(void);
