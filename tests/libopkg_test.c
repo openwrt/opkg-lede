@@ -70,7 +70,7 @@ void print_package(pkg_t * pkg)
 	       pkg->name,
 	       v,
 	       pkg->src->name,
-	       pkg_get_string(pkg, PKG_ARCHITECTURE),
+	       pkg_get_architecture(pkg),
 	       pkg_get_string(pkg, PKG_DESCRIPTION),
 	       tags ? tags : "",
 	       (unsigned long) pkg_get_int(pkg, PKG_SIZE), pkg->state_status);
@@ -93,7 +93,7 @@ void opkg_test(void)
 		pkg =
 		    opkg_find_package(find_pkg->name,
 				      pkg_get_string(find_pkg, PKG_VERSION),
-				      pkg_get_string(find_pkg, PKG_ARCHITECTURE),
+				      pkg_get_architecture(find_pkg),
 				      find_pkg->src->name);
 		if (pkg) {
 			print_package(pkg);

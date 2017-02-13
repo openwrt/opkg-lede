@@ -89,8 +89,6 @@ enum pkg_fields {
 	PKG_LOCAL_FILENAME,
 	PKG_VERSION,
 	PKG_REVISION,
-	PKG_ARCHITECTURE,
-	PKG_ARCH_PRIORITY,
 	PKG_DESCRIPTION,
 	PKG_MD5SUM,
 	PKG_SHA256SUM,
@@ -168,6 +166,8 @@ struct pkg {
 	int auto_installed:1;
 	int is_upgrade:1;
 
+	int arch_index:3;
+
 	struct blob_buf blob;
 };
 
@@ -205,6 +205,11 @@ static inline void * pkg_get_ptr(const pkg_t *pkg, int id)
 	void **ptr = pkg_get_raw(pkg, id);
 	return ptr ? *ptr : NULL;
 }
+
+char *pkg_set_architecture(pkg_t *pkg, const char *architecture, ssize_t len);
+char *pkg_get_architecture(const pkg_t *pkg);
+int pkg_get_arch_priority(const pkg_t *pkg);
+
 
 abstract_pkg_t *abstract_pkg_new(void);
 

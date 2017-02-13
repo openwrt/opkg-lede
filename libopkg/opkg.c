@@ -749,7 +749,7 @@ pkg_t *opkg_find_package(const char *name, const char *ver, const char *arch,
 
 		/* check architecture */
 		if (arch) {
-			if (sstrcmp(pkg_get_string(pkg, PKG_ARCHITECTURE), arch))
+			if (sstrcmp(pkg_get_architecture(pkg), arch))
 				continue;
 		}
 

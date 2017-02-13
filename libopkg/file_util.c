@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #include "sprintf_alloc.h"
 #include "file_util.h"
@@ -227,6 +228,57 @@ char *file_sha256sum_alloc(const char *file_name)
 }
 
 #endif
+
+char *checksum_bin2hex(const char *src, size_t len)
+{
+	char *p;
+	static char buf[65];
+	static const unsigned char bin2hex[16] = {
+		'0', '1', '2', '3',
+		'4', '5', '6', '7',
+		'8', '9', 'a', 'b',
+		'c', 'd', 'e', 'f'
+	};
+
+	if (len > 32)
+		return NULL;
+
+	for (p = buf; len > 0; src++, len--) {
+		*p++ = bin2hex[*src / 16];
+		*p++ = bin2hex[*src % 16];
+	}
+
+	*p = 0;
+
+	return buf;
+}
+
+char *checksum_hex2bin(const char *src, size_t *len)
+{
+	char *p;
+	size_t slen;
+	static char buf[32];
+
+	while (isspace(*src))
+		src++;
+
+	slen = strlen(src);
+
+	if (slen > 64) {
+		*len = 0;
+		return NULL;
+	}
+
+#define hex(c) \
+	(c >= 'a' ? (c - 'a') : (c >= 'A' ? (c - 'A') : (c - '0')))
+
+	for (p = buf, *len = 0;
+	     slen > 0 && isxdigit(src[0]) && isxdigit(src[1]);
+	     slen--, src += 2, (*len)++)
+		*p++ = hex(src[0]) * 16 + hex(src[1]);
+
+	return buf;
+}
 
 int rm_r(const char *path)
 {

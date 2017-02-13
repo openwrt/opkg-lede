@@ -53,12 +53,12 @@ void pkg_vec_insert_merge(pkg_vec_t * vec, pkg_t * pkg, int set_status)
 	int i;
 	int found = 0;
 	char *pkg_version = pkg_get_string(pkg, PKG_VERSION);
-	char *pkg_architecture = pkg_get_string(pkg, PKG_ARCHITECTURE);
+	char *pkg_architecture = pkg_get_architecture(pkg);
 	char *vec_architecture;
 
 	/* look for a duplicate pkg by name, version, and architecture */
 	for (i = 0; i < vec->len; i++) {
-		vec_architecture = pkg_get_string(vec->pkgs[i], PKG_ARCHITECTURE);
+		vec_architecture = pkg_get_architecture(vec->pkgs[i]);
 
 		opkg_msg(DEBUG2, "%s %s arch=%s vs. %s %s arch=%s.\n",
 			 pkg->name, pkg_version, pkg_architecture,

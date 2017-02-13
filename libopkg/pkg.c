@@ -85,6 +85,8 @@ static void pkg_init(pkg_t * pkg)
 	pkg->essential = 0;
 	pkg->provided_by_hand = 0;
 
+	pkg->arch_index = 0;
+
 	blob_buf_init(&pkg->blob, 0);
 }
 
@@ -155,6 +157,59 @@ char *pkg_set_string(pkg_t *pkg, int id, const char *s)
 	p[len] = 0;
 
 	return p;
+}
+
+char *pkg_get_architecture(const pkg_t *pkg)
+{
+	nv_pair_list_elt_t *l;
+	int n = 1;
+
+	list_for_each_entry(l, &conf->arch_list.head, node) {
+		nv_pair_t *nv = (nv_pair_t *) l->data;
+		if (n++ == pkg->arch_index)
+			return nv->name;
+	}
+
+	return NULL;
+}
+
+char *pkg_set_architecture(pkg_t *pkg, const char *architecture, ssize_t len)
+{
+	nv_pair_list_elt_t *l;
+	int n = 1;
+
+	list_for_each_entry(l, &conf->arch_list.head, node) {
+		nv_pair_t *nv = (nv_pair_t *) l->data;
+
+		if (!strncmp(nv->name, architecture, len) && nv->name[len] == '\0') {
+			if (n >= 8) {
+				opkg_msg(ERROR, "Internal error: too many different architectures\n");
+				break;
+			}
+
+			pkg->arch_index = n;
+			return nv->name;
+		}
+
+		n++;
+	}
+
+	pkg->arch_index = 0;
+	return NULL;
+}
+
+int pkg_get_arch_priority(const pkg_t *pkg)
+{
+	nv_pair_list_elt_t *l;
+	int n = 1;
+
+	list_for_each_entry(l, &conf->arch_list.head, node) {
+		nv_pair_t *nv = (nv_pair_t *) l->data;
+		if (n++ == pkg->arch_index)
+			return strtol(nv->value, NULL, 0);
+	}
+
+	return 0;
 }
 
 
@@ -292,10 +347,8 @@ int pkg_merge(pkg_t * oldpkg, pkg_t * newpkg)
 		oldpkg->src = newpkg->src;
 	if (!oldpkg->dest)
 		oldpkg->dest = newpkg->dest;
-	if (!pkg_get_string(oldpkg, PKG_ARCHITECTURE))
-		pkg_set_string(oldpkg, PKG_ARCHITECTURE, pkg_get_string(newpkg, PKG_ARCHITECTURE));
-	if (!pkg_get_int(oldpkg, PKG_ARCH_PRIORITY))
-		pkg_set_int(oldpkg, PKG_ARCH_PRIORITY, pkg_get_int(newpkg, PKG_ARCH_PRIORITY));
+	if (!oldpkg->arch_index)
+		oldpkg->arch_index = newpkg->arch_index;
 	if (!pkg_get_string(oldpkg, PKG_SECTION))
 		pkg_set_string(oldpkg, PKG_SECTION, pkg_get_string(newpkg, PKG_SECTION));
 	if (!pkg_get_string(oldpkg, PKG_MAINTAINER))
@@ -544,7 +597,7 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 	case 'a':
 	case 'A':
 		if (strcasecmp(field, "Architecture") == 0) {
-			p = pkg_get_string(pkg, PKG_ARCHITECTURE);
+			p = pkg_get_architecture(pkg);
 			if (p) {
 				fprintf(fp, "Architecture: %s\n",
 					p);
@@ -983,8 +1036,8 @@ int pkg_name_version_and_architecture_compare(const void *p1, const void *p2)
 	vercmp = pkg_compare_versions(a, b);
 	if (vercmp)
 		return vercmp;
-	arch_prio1 = pkg_get_int(a, PKG_ARCH_PRIORITY);
-	arch_prio2 = pkg_get_int(b, PKG_ARCH_PRIORITY);
+	arch_prio1 = pkg_get_arch_priority(a);
+	arch_prio2 = pkg_get_arch_priority(b);
 	if (!arch_prio1 || !arch_prio2) {
 		opkg_msg(ERROR,
 			 "Internal error: a->arch_priority=%i b->arch_priority=%i.\n",
@@ -1301,7 +1354,7 @@ int pkg_run_script(pkg_t * pkg, const char *script, const char *args)
 int pkg_arch_supported(pkg_t * pkg)
 {
 	nv_pair_list_elt_t *l;
-	char *architecture = pkg_get_string(pkg, PKG_ARCHITECTURE);
+	char *architecture = pkg_get_architecture(pkg);
 
 	if (!architecture)
 		return 1;

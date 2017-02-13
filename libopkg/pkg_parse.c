@@ -28,6 +28,7 @@
 #include "pkg_depends.h"
 #include "libbb/libbb.h"
 
+#include "file_util.h"
 #include "parse_util.h"
 
 static void parse_status(pkg_t * pkg, const char *sstr)
@@ -94,16 +95,20 @@ int parse_version(pkg_t * pkg, const char *vstr)
 	return 0;
 }
 
-static int get_arch_priority(const char *arch)
+static char *parse_architecture(pkg_t *pkg, const char *str)
 {
-	nv_pair_list_elt_t *l;
+	const char *s = str;
+	const char *e;
 
-	list_for_each_entry(l, &conf->arch_list.head, node) {
-		nv_pair_t *nv = (nv_pair_t *) l->data;
-		if (strcmp(nv->name, arch) == 0)
-			return strtol(nv->value, NULL, 0);
-	}
-	return 0;
+	while (isspace(*s))
+		s++;
+
+	e = s + strlen(s);
+
+	while (e > s && isspace(*e))
+		e--;
+
+	return pkg_set_architecture(pkg, s, e - s);
 }
 
 int pkg_parse_line(void *ptr, const char *line, uint mask)
@@ -114,6 +119,7 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 	/* these flags are a bit hackish... */
 	static int reading_conffiles = 0, reading_description = 0;
 	static char *description = NULL;
+	char *s;
 	int ret = 0;
 
 	/* Exclude globally masked fields. */
@@ -124,11 +130,9 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 
 	switch (*line) {
 	case 'A':
-		if ((mask & PFM_ARCHITECTURE) && is_field("Architecture", line)) {
-			pkg_set_int(pkg, PKG_ARCH_PRIORITY, get_arch_priority(
-				pkg_set_string(pkg, PKG_ARCHITECTURE, line + strlen("Architecture") + 1)));
-
-		} else if ((mask & PFM_AUTO_INSTALLED)
+		if ((mask & PFM_ARCHITECTURE) && is_field("Architecture", line))
+			parse_architecture(pkg, line + strlen("Architecture") + 1);
+		else if ((mask & PFM_AUTO_INSTALLED)
 			   && is_field("Auto-Installed", line)) {
 			char *tmp = parse_simple("Auto-Installed", line);
 			if (strcmp(tmp, "yes") == 0)
@@ -182,12 +186,12 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 		break;
 
 	case 'M':
-		if ((mask & PFM_MD5SUM) && is_field("MD5sum:", line))
-			pkg_set_string(pkg, PKG_MD5SUM, line + strlen("MD5sum") + 1);
-		/* The old opkg wrote out status files with the wrong
-		 * case for MD5sum, let's parse it either way */
-		else if ((mask & PFM_MD5SUM) && is_field("MD5Sum:", line))
-			pkg_set_string(pkg, PKG_MD5SUM, line + strlen("MD5Sum") + 1);
+		if ((mask & PFM_MD5SUM) && (is_field("MD5sum:", line) || is_field("MD5Sum:", line))) {
+			size_t len;
+			char *cksum = checksum_hex2bin(line + strlen("MD5sum") + 1, &len);
+			if (cksum && len == 16)
+				pkg_set_raw(pkg, PKG_MD5SUM, cksum, len);
+		}
 		else if ((mask & PFM_MAINTAINER)
 			 && is_field("Maintainer", line))
 			pkg_set_string(pkg, PKG_MAINTAINER, line + strlen("Maintainer") + 1);
@@ -216,8 +220,12 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 		if ((mask & PFM_SECTION) && is_field("Section", line))
 			pkg_set_string(pkg, PKG_SECTION, line + strlen("Section") + 1);
 #ifdef HAVE_SHA256
-		else if ((mask & PFM_SHA256SUM) && is_field("SHA256sum", line))
-			pkg_set_string(pkg, PKG_SHA256SUM, line + strlen("SHA256sum") + 1);
+		else if ((mask & PFM_SHA256SUM) && is_field("SHA256sum", line)) {
+			size_t len;
+			char *cksum = checksum_hex2bin(line + strlen("SHA256sum") + 1, &len);
+			if (cksum && len == 32)
+				pkg_set_raw(pkg, PKG_SHA256SUM, cksum, len);
+		}
 #endif
 		else if ((mask & PFM_SIZE) && is_field("Size", line)) {
 			pkg_set_int(pkg, PKG_SIZE, strtoul(line + strlen("Size") + 1, NULL, 0));

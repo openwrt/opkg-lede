@@ -1285,7 +1285,7 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 	if (!pkg_arch_supported(pkg)) {
 		opkg_msg(ERROR,
 			 "INTERNAL ERROR: architecture %s for pkg %s is unsupported.\n",
-			 pkg_get_string(pkg, PKG_ARCHITECTURE), pkg->name);
+			 pkg_get_architecture(pkg), pkg->name);
 		return -1;
 	}
 	if (pkg->state_status == SS_INSTALLED && conf->nodeps == 0) {
