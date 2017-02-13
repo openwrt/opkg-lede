@@ -186,12 +186,8 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 		break;
 
 	case 'M':
-		if ((mask & PFM_MD5SUM) && (is_field("MD5sum:", line) || is_field("MD5Sum:", line))) {
-			size_t len;
-			char *cksum = checksum_hex2bin(line + strlen("MD5sum") + 1, &len);
-			if (cksum && len == 16)
-				pkg_set_raw(pkg, PKG_MD5SUM, cksum, len);
-		}
+		if ((mask & PFM_MD5SUM) && (is_field("MD5sum:", line) || is_field("MD5Sum:", line)))
+			pkg_set_md5(pkg, line + strlen("MD5sum") + 1);
 		else if ((mask & PFM_MAINTAINER)
 			 && is_field("Maintainer", line))
 			pkg_set_string(pkg, PKG_MAINTAINER, line + strlen("Maintainer") + 1);
@@ -220,12 +216,8 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 		if ((mask & PFM_SECTION) && is_field("Section", line))
 			pkg_set_string(pkg, PKG_SECTION, line + strlen("Section") + 1);
 #ifdef HAVE_SHA256
-		else if ((mask & PFM_SHA256SUM) && is_field("SHA256sum", line)) {
-			size_t len;
-			char *cksum = checksum_hex2bin(line + strlen("SHA256sum") + 1, &len);
-			if (cksum && len == 32)
-				pkg_set_raw(pkg, PKG_SHA256SUM, cksum, len);
-		}
+		else if ((mask & PFM_SHA256SUM) && is_field("SHA256sum", line))
+			pkg_set_sha256(pkg, line + strlen("SHA256sum") + 1);
 #endif
 		else if ((mask & PFM_SIZE) && is_field("Size", line)) {
 			pkg_set_int(pkg, PKG_SIZE, strtoul(line + strlen("Size") + 1, NULL, 0));

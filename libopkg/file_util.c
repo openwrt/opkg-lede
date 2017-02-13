@@ -231,8 +231,9 @@ char *file_sha256sum_alloc(const char *file_name)
 
 char *checksum_bin2hex(const char *src, size_t len)
 {
-	char *p;
-	static char buf[65];
+	unsigned char *p;
+	static unsigned char buf[65];
+	const unsigned char *s = (unsigned char *)src;
 	static const unsigned char bin2hex[16] = {
 		'0', '1', '2', '3',
 		'4', '5', '6', '7',
@@ -243,21 +244,22 @@ char *checksum_bin2hex(const char *src, size_t len)
 	if (len > 32)
 		return NULL;
 
-	for (p = buf; len > 0; src++, len--) {
-		*p++ = bin2hex[*src / 16];
-		*p++ = bin2hex[*src % 16];
+	for (p = buf; len > 0; s++, len--) {
+		*p++ = bin2hex[*s / 16];
+		*p++ = bin2hex[*s % 16];
 	}
 
 	*p = 0;
 
-	return buf;
+	return (char *)buf;
 }
 
 char *checksum_hex2bin(const char *src, size_t *len)
 {
-	char *p;
 	size_t slen;
-	static char buf[32];
+	unsigned char *p;
+	const unsigned char *s = (unsigned char *)src;
+	static unsigned char buf[32];
 
 	while (isspace(*src))
 		src++;
@@ -273,11 +275,11 @@ char *checksum_hex2bin(const char *src, size_t *len)
 	(c >= 'a' ? (c - 'a') : (c >= 'A' ? (c - 'A') : (c - '0')))
 
 	for (p = buf, *len = 0;
-	     slen > 0 && isxdigit(src[0]) && isxdigit(src[1]);
-	     slen--, src += 2, (*len)++)
-		*p++ = hex(src[0]) * 16 + hex(src[1]);
+	     slen > 0 && isxdigit(s[0]) && isxdigit(s[1]);
+	     slen--, s += 2, (*len)++)
+		*p++ = hex(s[0]) * 16 + hex(s[1]);
 
-	return buf;
+	return (char *)buf;
 }
 
 int rm_r(const char *path)

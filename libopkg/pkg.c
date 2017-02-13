@@ -212,6 +212,48 @@ int pkg_get_arch_priority(const pkg_t *pkg)
 	return 0;
 }
 
+char *pkg_get_md5(const pkg_t *pkg)
+{
+	char *p = pkg_get_raw(pkg, PKG_MD5SUM);
+
+	if (!p)
+		return NULL;
+
+	return checksum_bin2hex(p, 16);
+}
+
+char *pkg_set_md5(pkg_t *pkg, const char *cksum)
+{
+	size_t len;
+	char *p = checksum_hex2bin(cksum, &len);
+
+	if (!p || len != 16)
+		return NULL;
+
+	return pkg_set_raw(pkg, PKG_MD5SUM, p, len);
+}
+
+char *pkg_get_sha256(const pkg_t *pkg)
+{
+	char *p = pkg_get_raw(pkg, PKG_SHA256SUM);
+
+	if (!p)
+		return NULL;
+
+	return checksum_bin2hex(p, 32);
+}
+
+char *pkg_set_sha256(pkg_t *pkg, const char *cksum)
+{
+	size_t len;
+	char *p = checksum_hex2bin(cksum, &len);
+
+	if (!p || len != 32)
+		return NULL;
+
+	return pkg_set_raw(pkg, PKG_SHA256SUM, p, len);
+}
+
 
 static void compound_depend_deinit(compound_depend_t * depends)
 {
@@ -384,10 +426,10 @@ int pkg_merge(pkg_t * oldpkg, pkg_t * newpkg)
 		pkg_set_string(oldpkg, PKG_LOCAL_FILENAME, pkg_get_string(newpkg, PKG_LOCAL_FILENAME));
 	if (!pkg_get_string(oldpkg, PKG_TMP_UNPACK_DIR))
 		pkg_set_string(oldpkg, PKG_TMP_UNPACK_DIR, pkg_get_string(newpkg, PKG_TMP_UNPACK_DIR));
-	if (!pkg_get_string(oldpkg, PKG_MD5SUM))
-		pkg_set_string(oldpkg, PKG_MD5SUM, pkg_get_string(newpkg, PKG_MD5SUM));
-	if (!pkg_get_string(oldpkg, PKG_SHA256SUM))
-		pkg_set_string(oldpkg, PKG_SHA256SUM, pkg_get_string(newpkg, PKG_SHA256SUM));
+	if (!pkg_get_md5(oldpkg))
+		pkg_set_md5(oldpkg, pkg_get_md5(newpkg));
+	if (!pkg_get_sha256(oldpkg))
+		pkg_set_sha256(oldpkg, pkg_get_sha256(newpkg));
 	if (!pkg_get_int(oldpkg, PKG_SIZE))
 		pkg_set_int(oldpkg, PKG_SIZE, pkg_get_int(newpkg, PKG_SIZE));
 	if (!pkg_get_int(oldpkg, PKG_INSTALLED_SIZE))
@@ -716,7 +758,7 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 				fprintf(fp, "Maintainer: %s\n", p);
 			}
 		} else if (strcasecmp(field, "MD5sum") == 0) {
-			p = pkg_get_string(pkg, PKG_MD5SUM);
+			p = pkg_get_md5(pkg);
 			if (p) {
 				fprintf(fp, "MD5Sum: %s\n", p);
 			}

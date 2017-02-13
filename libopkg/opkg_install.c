@@ -1388,7 +1388,7 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 
 #ifdef HAVE_MD5
 	/* Check for md5 values */
-	pkg_md5 = pkg_get_string(pkg, PKG_MD5SUM);
+	pkg_md5 = pkg_get_md5(pkg);
 	if (pkg_md5) {
 		file_md5 = file_md5sum_alloc(local_filename);
 		if (file_md5 && strcmp(file_md5, pkg_md5)) {
@@ -1411,7 +1411,7 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 
 #ifdef HAVE_SHA256
 	/* Check for sha256 value */
-	pkg_sha256 = pkg_get_string(pkg, PKG_SHA256SUM);
+	pkg_sha256 = pkg_get_sha256(pkg);
 	if (pkg_sha256) {
 		file_sha256 = file_sha256sum_alloc(local_filename);
 		if (file_sha256 && strcmp(file_sha256, pkg_sha256)) {

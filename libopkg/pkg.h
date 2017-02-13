@@ -210,6 +210,11 @@ char *pkg_set_architecture(pkg_t *pkg, const char *architecture, ssize_t len);
 char *pkg_get_architecture(const pkg_t *pkg);
 int pkg_get_arch_priority(const pkg_t *pkg);
 
+char *pkg_get_md5(const pkg_t *pkg);
+char *pkg_set_md5(pkg_t *pkg, const char *cksum);
+
+char *pkg_get_sha256(const pkg_t *pkg);
+char *pkg_set_sha256(pkg_t *pkg, const char *cksum);
 
 abstract_pkg_t *abstract_pkg_new(void);
 
