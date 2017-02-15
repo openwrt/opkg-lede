@@ -221,11 +221,6 @@ int pkg_hash_load_status_files(void)
 	return 0;
 }
 
-static abstract_pkg_t *abstract_pkg_fetch_by_name(const char *pkg_name)
-{
-	return (abstract_pkg_t *) hash_table_get(&conf->pkg_hash, pkg_name);
-}
-
 pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 						  int (*constraint_fcn) (pkg_t *
 									 pkg,
