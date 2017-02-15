@@ -241,7 +241,7 @@ char *checksum_bin2hex(const char *src, size_t len)
 		'c', 'd', 'e', 'f'
 	};
 
-	if (len > 32)
+	if (!s || len > 32)
 		return NULL;
 
 	for (p = buf; len > 0; s++, len--) {
@@ -260,6 +260,11 @@ char *checksum_hex2bin(const char *src, size_t *len)
 	unsigned char *p;
 	const unsigned char *s = (unsigned char *)src;
 	static unsigned char buf[32];
+
+	if (!src) {
+		*len = 0;
+		return NULL;
+	}
 
 	while (isspace(*src))
 		src++;
