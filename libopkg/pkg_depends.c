@@ -90,7 +90,7 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 	the_lost = NULL;
 
 	/* foreach dependency */
-	for (; compound_depend && compound_depend->type; compound_depend++) {
+	for (i = 0; compound_depend && compound_depend->type; compound_depend++, i++) {
 		depend_t **possible_satisfiers =
 		    compound_depend->possibilities;;
 		found = 0;
