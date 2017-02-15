@@ -194,8 +194,17 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 		break;
 
 	case 'P':
-		if ((mask & PFM_PACKAGE) && is_field("Package", line))
+		if ((mask & PFM_PACKAGE) && is_field("Package", line)) {
 			pkg->name = parse_simple("Package", line);
+			ab_pkg = abstract_pkg_fetch_by_name(pkg->name);
+
+			if (ab_pkg && (ab_pkg->state_flag & SF_NEED_DETAIL)) {
+				if (!(pkg->state_flag & SF_NEED_DETAIL)) {
+					opkg_msg(DEPEND, "propagating abpkg flag to pkg %s\n", pkg->name);
+					pkg->state_flag |= SF_NEED_DETAIL;
+				}
+			}
+		}
 		else if ((mask & PFM_PRIORITY) && is_field("Priority", line))
 			pkg_set_string(pkg, PKG_PRIORITY, line + strlen("Priority") + 1);
 		else if ((mask & PFM_PROVIDES) && is_field("Provides", line))
