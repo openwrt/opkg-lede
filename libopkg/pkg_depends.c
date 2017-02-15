@@ -639,6 +639,30 @@ char **add_unresolved_dep(pkg_t * pkg, char **the_lost, int ref_ndx)
 	return resized;
 }
 
+static void flag_related_packages(pkg_t *pkg, int state_flags)
+{
+	int i, j;
+	compound_depend_t *deps;
+
+	for (deps = pkg_get_ptr(pkg, PKG_DEPENDS), i = 0; deps && deps[i].type; i++)
+		for (j = 0; j < deps[i].possibility_count; j++) {
+			if ((deps[i].possibilities[j]->pkg->state_flag & state_flags) != state_flags) {
+				opkg_msg(DEBUG, "propagating pkg flag to dependent abpkg %s\n",
+				         deps[i].possibilities[j]->pkg->name);
+				deps[i].possibilities[j]->pkg->state_flag |= state_flags;
+			}
+		}
+
+	for (deps = pkg_get_ptr(pkg, PKG_CONFLICTS), i = 0; deps && deps[i].type; i++)
+		for (j = 0; j < deps[i].possibility_count; j++) {
+			if ((deps[i].possibilities[j]->pkg->state_flag & state_flags) != state_flags) {
+				opkg_msg(DEBUG, "propagating pkg flag to conflicting abpkg %s\n",
+				         deps[i].possibilities[j]->pkg->name);
+				deps[i].possibilities[j]->pkg->state_flag |= state_flags;
+			}
+		}
+}
+
 abstract_pkg_t **init_providelist(pkg_t *pkg, int *count)
 {
 	abstract_pkg_t *ab_pkg;
@@ -670,9 +694,19 @@ abstract_pkg_t **init_providelist(pkg_t *pkg, int *count)
 		pkg_set_ptr(pkg, PKG_PROVIDES, provides);
 	}
 	else if (count) {
-		for (*count = 1; *provides; provides++)
+		for (*count = 1; *provides; provides++) {
+			if (pkg->state_flag & SF_NEED_DETAIL) {
+				if (!((*provides)->state_flag & SF_NEED_DETAIL)) {
+					opkg_msg(DEBUG, "propagating pkg flag to provided abpkg %s\n",
+					         (*provides)->name);
+					(*provides)->state_flag |= SF_NEED_DETAIL;
+				}
+			}
 			(*count)++;
+		}
 	}
+
+	flag_related_packages(pkg, SF_NEED_DETAIL);
 
 	return provides;
 }
@@ -731,6 +765,14 @@ void parse_replacelist(pkg_t *pkg, char *list)
 			break;
 
 		old_abpkg = ensure_abstract_pkg_by_name(item);
+
+		if (pkg->state_flag & SF_NEED_DETAIL) {
+			if (!(old_abpkg->state_flag & SF_NEED_DETAIL)) {
+				opkg_msg(DEBUG, "propagating pkg flag to replaced abpkg %s\n",
+				         old_abpkg->name);
+				old_abpkg->state_flag |= SF_NEED_DETAIL;
+			}
+		}
 
 		if (!old_abpkg->replaced_by)
 			old_abpkg->replaced_by = abstract_pkg_vec_alloc();
