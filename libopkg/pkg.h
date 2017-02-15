@@ -60,6 +60,7 @@ enum pkg_state_flag {
 	SF_MARKED = 64,		/* temporary mark */
 	SF_FILELIST_CHANGED = 128,	/* needs filelist written */
 	SF_USER = 256,
+	SF_NEED_DETAIL = 512,
 	SF_LAST_STATE_FLAG
 };
 typedef enum pkg_state_flag pkg_state_flag_t;
@@ -144,7 +145,7 @@ struct pkg {
 	pkg_src_t *src;
 	pkg_dest_t *dest;
 	pkg_state_want_t state_want:3;
-	pkg_state_flag_t state_flag:10;
+	pkg_state_flag_t state_flag:11;
 	pkg_state_status_t state_status:4;
 
 	abstract_pkg_t *parent;
