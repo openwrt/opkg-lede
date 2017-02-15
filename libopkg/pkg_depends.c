@@ -26,7 +26,7 @@
 #include "hash_table.h"
 #include "libbb/libbb.h"
 
-static int parseDepends(compound_depend_t * compound_depend, char *depend_str);
+static int parseDepends(compound_depend_t * compound_depend, char *depend_str, enum depend_type type);
 static depend_t *depend_init(void);
 static char **add_unresolved_dep(pkg_t * pkg, char **the_lost, int ref_ndx);
 static char **merge_unresolved(char **oldstuff, char **newstuff);
@@ -868,9 +868,7 @@ void parse_deplist(pkg_t *pkg, enum depend_type type, char *list)
 		deps = tmp;
 
 		memset(deps + count - 1, 0, sizeof(compound_depend_t));
-		parseDepends(deps + count - 1, item);
-
-		deps[count - 1].type = type;
+		parseDepends(deps + count - 1, item, type);
 	}
 
 	if (!deps)
@@ -1064,13 +1062,13 @@ static depend_t *depend_init(void)
 	return d;
 }
 
-static int parseDepends(compound_depend_t * compound_depend, char *depend_str)
+static int parseDepends(compound_depend_t * compound_depend, char *depend_str, enum depend_type type)
 {
 	int i;
 	char *depend, *name, *vstr, *rest, *tok = NULL;
 	depend_t **possibilities = NULL, **tmp;
 
-	compound_depend->type = DEPEND;
+	compound_depend->type = type;
 
 	for (i = 0, depend = strtok_r(depend_str, "|", &tok); depend; i++, depend = strtok_r(NULL, "|", &tok)) {
 		name = strtok(depend, " ");
