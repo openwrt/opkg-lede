@@ -300,6 +300,7 @@ int opkg_prepare_url_for_install(const char *url, char **namep)
 {
 	int err = 0;
 	pkg_t *pkg;
+	abstract_pkg_t *ab_pkg;
 
 	pkg = pkg_new();
 
@@ -333,6 +334,13 @@ int opkg_prepare_url_for_install(const char *url, char **namep)
 		pkg->provided_by_hand = 1;
 
 	} else {
+		ab_pkg = ensure_abstract_pkg_by_name(url);
+
+		if (!(ab_pkg->state_flag & SF_NEED_DETAIL)) {
+			opkg_msg(DEBUG, "applying abpkg flag to %s\n", ab_pkg->name);
+			ab_pkg->state_flag |= SF_NEED_DETAIL;
+		}
+
 		pkg_deinit(pkg);
 		free(pkg);
 		return 0;
