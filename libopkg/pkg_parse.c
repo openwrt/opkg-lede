@@ -42,7 +42,7 @@ static void parse_status(pkg_t * pkg, const char *sstr)
 	}
 
 	pkg->state_want = pkg_state_want_from_str(sw_str);
-	pkg->state_flag = pkg_state_flag_from_str(sf_str);
+	pkg->state_flag |= pkg_state_flag_from_str(sf_str);
 	pkg->state_status = pkg_state_status_from_str(ss_str);
 }
 
