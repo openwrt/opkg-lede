@@ -683,7 +683,8 @@ abstract_pkg_t **init_providelist(pkg_t *pkg, int *count)
 		if (!ab_pkg->pkgs)
 			ab_pkg->pkgs = pkg_vec_alloc();
 
-		abstract_pkg_vec_insert(ab_pkg->provided_by, ab_pkg);
+		if (!abstract_pkg_vec_contains(ab_pkg->provided_by, ab_pkg))
+			abstract_pkg_vec_insert(ab_pkg->provided_by, ab_pkg);
 
 		provides[0] = ab_pkg;
 		provides[1] = NULL;
@@ -732,7 +733,8 @@ void parse_providelist(pkg_t *pkg, char *list)
 
 		provided_abpkg = ensure_abstract_pkg_by_name(item);
 
-		abstract_pkg_vec_insert(provided_abpkg->provided_by, ab_pkg);
+		if (!abstract_pkg_vec_contains(provided_abpkg->provided_by, ab_pkg))
+			abstract_pkg_vec_insert(provided_abpkg->provided_by, ab_pkg);
 
 		provides = tmp;
 		provides[count - 1] = provided_abpkg;
