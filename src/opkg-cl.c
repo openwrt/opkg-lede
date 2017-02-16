@@ -387,7 +387,8 @@ int main(int argc, char *argv[])
 
 	cmd_name = argv[opts++];
 
-	if (!strcmp(cmd_name, "print-architecture") ||
+	if (!strcmp(cmd_name, "install") ||
+	    !strcmp(cmd_name, "print-architecture") ||
 	    !strcmp(cmd_name, "print_architecture") ||
 	    !strcmp(cmd_name, "print-installation-architecture") ||
 	    !strcmp(cmd_name, "print_installation_architecture"))
@@ -395,6 +396,7 @@ int main(int argc, char *argv[])
 
 	if (!strcmp(cmd_name, "flag") ||
 	    !strcmp(cmd_name, "configure") ||
+	    !strcmp(cmd_name, "install") ||
 	    !strcmp(cmd_name, "remove") ||
 	    !strcmp(cmd_name, "files") ||
 	    !strcmp(cmd_name, "search") ||
