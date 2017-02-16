@@ -435,14 +435,6 @@ static int opkg_install_cmd(int argc, char **argv)
 	char *arg;
 	int err = 0;
 
-	if (conf->force_reinstall) {
-		int saved_force_depends = conf->force_depends;
-		conf->force_depends = 1;
-		(void)opkg_remove_cmd(argc, argv);
-		conf->force_depends = saved_force_depends;
-		conf->force_reinstall = 0;
-	}
-
 	signal(SIGINT, sigint_handler);
 
 	/*
@@ -455,6 +447,18 @@ static int opkg_install_cmd(int argc, char **argv)
 		if (opkg_prepare_url_for_install(arg, &argv[i]))
 			return -1;
 	}
+
+	pkg_hash_load_package_details();
+	pkg_hash_load_status_files();
+
+	if (conf->force_reinstall) {
+		int saved_force_depends = conf->force_depends;
+		conf->force_depends = 1;
+		(void)opkg_remove_cmd(argc, argv);
+		conf->force_depends = saved_force_depends;
+		conf->force_reinstall = 0;
+	}
+
 	pkg_info_preinstall_check();
 
 	for (i = 0; i < argc; i++) {
