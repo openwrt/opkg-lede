@@ -167,7 +167,7 @@ pkg_hash_add_from_file(const char *file_name,
 /*
  * Load in feed files from the cached "src" and/or "src/gz" locations.
  */
-int pkg_hash_load_feeds(void)
+int pkg_hash_load_feeds(int state_flags)
 {
 	pkg_src_list_elt_t *iter;
 	pkg_src_t *src, *subdist;
@@ -186,7 +186,7 @@ int pkg_hash_load_feeds(void)
 		sprintf_alloc(&list_file, "%s/%s", lists_dir, src->name);
 
 		if (file_exists(list_file)) {
-			if (pkg_hash_add_from_file(list_file, src, NULL, 0, 0)) {
+			if (pkg_hash_add_from_file(list_file, src, NULL, 0, state_flags)) {
 				free(list_file);
 				return -1;
 			}

@@ -122,7 +122,7 @@ int opkg_new()
 	if (opkg_conf_load())
 		goto err0;
 
-	if (pkg_hash_load_feeds())
+	if (pkg_hash_load_feeds(0))
 		goto err1;
 
 	if (pkg_hash_load_status_files())

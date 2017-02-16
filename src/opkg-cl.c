@@ -421,7 +421,7 @@ int main(int argc, char *argv[])
 
 	if (!nocheckfordirorfile) {
 		if (!noreadfeedsfile) {
-			if (pkg_hash_load_feeds())
+			if (pkg_hash_load_feeds(SF_NEED_DETAIL))
 				goto err1;
 		}
 
