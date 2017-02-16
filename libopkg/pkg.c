@@ -269,7 +269,10 @@ static void compound_depend_deinit(compound_depend_t * depends)
 
 void pkg_deinit(pkg_t * pkg)
 {
+	int rem;
+	struct blob_attr *cur;
 	compound_depend_t *deps, *dep;
+	void *ptr;
 
 	if (pkg->name)
 		free(pkg->name);
@@ -284,24 +287,43 @@ void pkg_deinit(pkg_t * pkg)
 	pkg->state_flag = SF_OK;
 	pkg->state_status = SS_NOT_INSTALLED;
 
-	deps = pkg_get_ptr(pkg, PKG_DEPENDS);
+	blob_for_each_attr(cur, pkg->blob.head, rem) {
+		switch (blob_id(cur)) {
+		case PKG_DEPENDS:
+		case PKG_CONFLICTS:
+			deps = pkg_get_ptr(pkg, blob_id(cur));
 
-	if (deps) {
-		for (dep = deps; dep->type; dep++)
-			compound_depend_deinit(dep);
+			if (deps) {
+				for (dep = deps; dep->type; dep++)
+					compound_depend_deinit(dep);
 
-		free(deps);
-		pkg_set_ptr(pkg, PKG_DEPENDS, NULL);
-	}
+				free(deps);
+			}
 
-	deps = pkg_get_ptr(pkg, PKG_CONFLICTS);
+			pkg_set_ptr(pkg, blob_id(cur), NULL);
+			break;
 
-	if (deps) {
-		for (dep = deps; dep->type; dep++)
-			compound_depend_deinit(dep);
+		case PKG_REPLACES:
+		case PKG_PROVIDES:
+			ptr = pkg_get_ptr(pkg, blob_id(cur));
 
-		free(deps);
-		pkg_set_ptr(pkg, PKG_CONFLICTS, NULL);
+			if (ptr)
+				free(ptr);
+
+			pkg_set_ptr(pkg, blob_id(cur), NULL);
+			break;
+
+		case PKG_CONFFILES:
+			ptr = pkg_get_ptr(pkg, blob_id(cur));
+
+			if (ptr) {
+				conffile_list_deinit(ptr);
+				free(ptr);
+			}
+
+			pkg_set_ptr(pkg, blob_id(cur), NULL);
+			break;
+		}
 	}
 
 	//conffile_list_deinit(&pkg->conffiles);
@@ -313,7 +335,7 @@ void pkg_deinit(pkg_t * pkg)
 	pkg_free_installed_files(pkg);
 	pkg->essential = 0;
 
-	//blob_buf_free(&pkg->blob);
+	blob_buf_free(&pkg->blob);
 }
 
 int pkg_init_from_file(pkg_t * pkg, const char *filename)
