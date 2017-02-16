@@ -33,6 +33,7 @@ int pkg_hash_add_from_file(const char *file_name, pkg_src_t * src,
 			   pkg_dest_t * dest, int is_status_file, int state_flags);
 int pkg_hash_load_feeds(int state_flags);
 int pkg_hash_load_status_files(void);
+int pkg_hash_load_package_details(void);
 
 void hash_insert_pkg(pkg_t * pkg, int set_status);
 

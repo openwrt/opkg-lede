@@ -222,6 +222,46 @@ int pkg_hash_load_status_files(void)
 	return 0;
 }
 
+static void
+pkg_hash_load_package_details_helper(const char *pkg_name, void *entry, void *data)
+{
+	int *count = data;
+	abstract_pkg_t *ab_pkg = (abstract_pkg_t *) entry;
+
+	if (ab_pkg->state_flag & SF_NEED_DETAIL) {
+		if (ab_pkg->state_flag & SF_MARKED) {
+			opkg_msg(DEBUG, "skipping already seen flagged abpkg %s\n",
+			         ab_pkg->name);
+			return;
+		}
+
+		opkg_msg(DEBUG, "found yet incomplete flagged abpkg %s\n",
+		         ab_pkg->name);
+
+		(*count)++;
+		ab_pkg->state_flag |= SF_MARKED;
+	}
+}
+
+int pkg_hash_load_package_details(void)
+{
+	int n_need_detail;
+
+	while (1) {
+		pkg_hash_load_feeds(0);
+
+		n_need_detail = 0;
+		hash_table_foreach(&conf->pkg_hash, pkg_hash_load_package_details_helper, &n_need_detail);
+
+		if (n_need_detail > 0)
+			opkg_msg(DEBUG, "Found %d packages requiring details, reloading feeds\n", n_need_detail);
+		else
+			break;
+	}
+
+	return 0;
+}
+
 pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 						  int (*constraint_fcn) (pkg_t *
 									 pkg,
