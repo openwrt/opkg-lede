@@ -407,6 +407,9 @@ int pkg_merge(pkg_t * oldpkg, pkg_t * newpkg)
 	if (!ab || !ab[0] || !ab[1]) {
 		pkg_set_ptr(oldpkg, PKG_PROVIDES, pkg_get_ptr(newpkg, PKG_PROVIDES));
 		pkg_set_ptr(newpkg, PKG_PROVIDES, NULL);
+
+		if (ab)
+			free(ab);
 	}
 
 	if (!pkg_get_ptr(oldpkg, PKG_CONFLICTS)) {
