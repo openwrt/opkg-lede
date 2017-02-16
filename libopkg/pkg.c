@@ -796,10 +796,9 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 			ab_pkg = pkg_get_ptr(pkg, PKG_PROVIDES);
 			if (ab_pkg && ab_pkg[0] && ab_pkg[1]) {
 				fprintf(fp, "Provides:");
-				for (i = 0, ab_pkg++; *ab_pkg; i++, ab_pkg++) {
-					fprintf(fp, "%s %s", i == 0 ? "" : ",",
-						(*ab_pkg)->name);
-					ab_pkg++;
+				for (i = 1; ab_pkg[i]; i++) {
+					fprintf(fp, "%s %s", i == 1 ? "" : ",",
+						ab_pkg[i]->name);
 				}
 				fprintf(fp, "\n");
 			}
