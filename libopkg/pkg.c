@@ -376,7 +376,6 @@ err0:
 int pkg_merge(pkg_t * oldpkg, pkg_t * newpkg)
 {
 	abstract_pkg_t **ab;
-	conffile_list_t *cf, head;
 
 	if (oldpkg == newpkg) {
 		return 0;
@@ -440,12 +439,8 @@ int pkg_merge(pkg_t * oldpkg, pkg_t * newpkg)
 		pkg_set_string(oldpkg, PKG_SOURCE, pkg_get_string(newpkg, PKG_SOURCE));
 
 	if (!pkg_get_ptr(oldpkg, PKG_CONFFILES)) {
-		cf = pkg_get_ptr(newpkg, PKG_CONFFILES);
-		if (cf) {
-			conffile_list_init(&head);
-			list_splice_init(&cf->head, &head.head);
-			pkg_set_raw(oldpkg, PKG_CONFFILES, &head, sizeof(head));
-		}
+		pkg_set_ptr(oldpkg, PKG_CONFFILES, pkg_get_ptr(newpkg, PKG_CONFFILES));
+		pkg_set_ptr(newpkg, PKG_CONFFILES, NULL);
 	}
 
 	if (!oldpkg->installed_files) {
