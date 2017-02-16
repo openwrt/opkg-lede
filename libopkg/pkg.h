@@ -198,7 +198,8 @@ static inline char *pkg_get_string(const pkg_t *pkg, int id)
 
 static inline void * pkg_set_ptr(pkg_t *pkg, int id, void *ptr)
 {
-	return ptr ? *(void **) pkg_set_raw(pkg, id, &ptr, sizeof(ptr)) : NULL;
+	void **res = pkg_set_raw(pkg, id, &ptr, sizeof(ptr));
+	return res ? *res : NULL;
 }
 
 static inline void * pkg_get_ptr(const pkg_t *pkg, int id)
