@@ -346,6 +346,11 @@ int pkg_init_from_file(pkg_t * pkg, const char *filename)
 
 	pkg_init(pkg);
 
+	if (!(pkg->state_flag & SF_NEED_DETAIL)) {
+		opkg_msg(DEBUG, "applying abpkg flag to %s\n", filename);
+		pkg->state_flag |= SF_NEED_DETAIL;
+	}
+
 	pkg_set_string(pkg, PKG_LOCAL_FILENAME, filename);
 
 	tmp = xstrdup(filename);
