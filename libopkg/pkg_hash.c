@@ -142,6 +142,13 @@ pkg_hash_add_from_file(const char *file_name,
 			continue;
 		}
 
+		if (!(pkg->state_flag & SF_NEED_DETAIL)) {
+			//opkg_msg(DEBUG, "Package %s is unrelated, ignoring.\n", pkg->name);
+			pkg_deinit(pkg);
+			free(pkg);
+			continue;
+		}
+
 		if (!pkg_get_architecture(pkg) || !pkg_get_arch_priority(pkg)) {
 			char *version_str = pkg_version_str_alloc(pkg);
 			opkg_msg(NOTICE, "Package %s version %s has no "
