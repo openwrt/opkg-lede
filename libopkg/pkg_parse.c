@@ -84,11 +84,11 @@ int parse_version(pkg_t * pkg, const char *vstr)
 	rev = strrchr(vstr, '-');
 
 	if (rev) {
-		*rev++ = '\0';
-		pkg_set_string(pkg, PKG_REVISION, rev);
+		pkg_set_string(pkg, PKG_REVISION, rev + 1);
+		pkg_set_raw(pkg, PKG_VERSION, vstr, rev - vstr - 1);
+	} else {
+		pkg_set_string(pkg, PKG_VERSION, vstr);
 	}
-
-	pkg_set_string(pkg, PKG_VERSION, vstr);
 
 	return 0;
 }
