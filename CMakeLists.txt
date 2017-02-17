@@ -33,6 +33,7 @@ ADD_DEFINITIONS(-Os -Wall --std=gnu99 -g3 -Wmissing-declarations
 	-DHOST_CPU_STR="${HOST_CPU}"
 	-DBUILD_CPU=${BUILD_CPU}
 	-DVERSION="${GIT_VERSION}"
+	-DHAVE_SHA256
 )
 
 ADD_SUBDIRECTORY(libbb)
