@@ -20,8 +20,6 @@
 */
 
 #define _GNU_SOURCE
-#include "config.h"
-
 #include <stdio.h>
 #include <getopt.h>
 #include <fnmatch.h>
