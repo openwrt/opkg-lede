@@ -19,10 +19,12 @@
    opkg command line frontend using libopkg
 */
 
+#define _GNU_SOURCE
 #include "config.h"
 
 #include <stdio.h>
 #include <getopt.h>
+#include <fnmatch.h>
 
 #include "opkg_conf.h"
 #include "opkg_cmd.h"
