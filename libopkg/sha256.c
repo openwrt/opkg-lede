@@ -20,8 +20,6 @@
    Scott G. Miller's sha1.c
 */
 
-#include <config.h>
-
 #include "sha256.h"
 
 #include <stddef.h>

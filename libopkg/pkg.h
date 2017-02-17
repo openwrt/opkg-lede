@@ -18,8 +18,6 @@
 #ifndef PKG_H
 #define PKG_H
 
-#include "config.h"
-
 #include <sys/types.h>
 #include <libubox/blob.h>
 
