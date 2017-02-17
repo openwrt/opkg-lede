@@ -16,6 +16,15 @@ IF(NOT BUILD_CPU)
 	SET(BUILD_CPU "${CMAKE_SYSTEM_PROCESSOR}")
 ENDIF()
 
+EXECUTE_PROCESS(COMMAND git log -1 "--format=%h (%ci)"
+	OUTPUT_VARIABLE GIT_VERSION
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+IF(NOT GIT_VERSION)
+	SET(GIT_VERSION "unknown")
+ENDIF()
+
 ADD_DEFINITIONS(-Os -Wall --std=gnu99 -g3 -Wmissing-declarations
 	-DDATADIR="/usr/share"
 	-DOPKGETCDIR="/etc"
@@ -23,6 +32,7 @@ ADD_DEFINITIONS(-Os -Wall --std=gnu99 -g3 -Wmissing-declarations
 	-DOPKGLIBDIR="/usr/lib"
 	-DHOST_CPU_STR="${HOST_CPU}"
 	-DBUILD_CPU=${BUILD_CPU}
+	-DVERSION="${GIT_VERSION}"
 )
 
 ADD_SUBDIRECTORY(libbb)
