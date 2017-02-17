@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
 	    extract_control_tar_gz | extract_all_to_fs | extract_preserve_date;
 	char *returned;
 	char *filename;
+	int err;
 
 	if (argc < 2) {
 		fprintf(stderr, "syntax: %s <opkg file> [<file_to_extract>]\n",
@@ -37,7 +38,7 @@ int main(int argc, char *argv[])
 		filename = argv[2];
 	}
 
-	returned = deb_extract(argv[1], stdout, dowhat, NULL, filename);
+	returned = deb_extract(argv[1], stdout, dowhat, NULL, filename, &err);
 
 	if (returned)
 		fprintf(stderr, "returned %s\n", returned);
