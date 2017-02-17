@@ -61,6 +61,9 @@ autom4te.cache/
 .deps/
 src/opkg-cl
 tests/libopkg_test
+tests/opkg_active_list_test
+tests/opkg_extract_test
+tests/opkg_hash_test
 
 # Man pages
 man/*.1
