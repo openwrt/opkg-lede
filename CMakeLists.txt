@@ -4,6 +4,7 @@ PROJECT(opkg C)
 
 OPTION(HOST_CPU "Override Host CPU")
 OPTION(BUILD_CPU "Override Host CPU")
+OPTION(LOCK_FILE "Override lock file path" /var/lock/opkg.lock)
 OPTION(STATIC_UBOX "Statically link libubox")
 OPTION(BUILD_TESTS "Build test programs" ON)
 
@@ -18,7 +19,7 @@ ENDIF()
 ADD_DEFINITIONS(-Os -Wall --std=gnu99 -g3 -Wmissing-declarations
 	-DDATADIR="/usr/share"
 	-DOPKGETCDIR="/etc"
-	-DOPKGLOCKFILE="/var/lock/opkg.lock"
+	-DOPKGLOCKFILE="${LOCK_FILE}"
 	-DOPKGLIBDIR="/usr/lib"
 	-DHOST_CPU_STR="${HOST_CPU}"
 	-DBUILD_CPU=${BUILD_CPU}
