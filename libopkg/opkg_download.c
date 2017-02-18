@@ -31,11 +31,7 @@
 #include "opkg_defines.h"
 #include "libbb/libbb.h"
 
-#ifdef HAVE_CURL
-#include <curl/curl.h>
-#endif
-
-#if defined(HAVE_SSLCURL) || defined(HAVE_OPENSSL)
+#if defined(HAVE_OPENSSL)
 #include <openssl/conf.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
@@ -50,21 +46,12 @@
 #include <openssl/hmac.h>
 #endif
 
-#if defined(HAVE_OPENSSL) || defined(HAVE_SSLCURL)
+#if defined(HAVE_OPENSSL)
 static void openssl_init(void);
 #endif
 
 #ifdef HAVE_OPENSSL
 static X509_STORE *setup_verify(char *CAfile, char *CApath);
-#endif
-
-#ifdef HAVE_CURL
-/*
- * Make curl an instance variable so we don't have to instanciate it
- * each time
- */
-static CURL *curl = NULL;
-static CURL *opkg_curl_init(curl_progress_func cb, void *data);
 #endif
 
 static int str_starts_with(const char *str, const char *prefix)
@@ -120,33 +107,7 @@ opkg_download(const char *src, const char *dest_file_name,
 			 conf->no_proxy);
 		setenv("no_proxy", conf->no_proxy, 1);
 	}
-#ifdef HAVE_CURL
-	CURLcode res;
-	FILE *file = fopen(tmp_file_location, "w");
 
-	curl = opkg_curl_init(cb, data);
-	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, src);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
-
-		res = curl_easy_perform(curl);
-		fclose(file);
-		if (res) {
-			long error_code;
-			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE,
-					  &error_code);
-			opkg_msg(hide_error ? DEBUG2 : ERROR,
-				 "Failed to download %s: %s.\n", src,
-				 curl_easy_strerror(res));
-			free(tmp_file_location);
-			return -1;
-		}
-
-	} else {
-		free(tmp_file_location);
-		return -1;
-	}
-#else
 	{
 		int res;
 		const char *argv[8];
@@ -175,7 +136,6 @@ opkg_download(const char *src, const char *dest_file_name,
 			return -1;
 		}
 	}
-#endif
 
 	err = file_move(tmp_file_location, dest_file_name);
 
@@ -433,7 +393,7 @@ verify_file_end:
 #endif
 }
 
-#if defined(HAVE_OPENSSL) || defined(HAVE_SSLCURL)
+#if defined(HAVE_OPENSSL)
 static void openssl_init(void)
 {
 	static int init = 0;
@@ -501,127 +461,4 @@ end:
 
 }
 
-#endif
-
-#ifdef HAVE_CURL
-void opkg_curl_cleanup(void)
-{
-	if (curl != NULL) {
-		curl_easy_cleanup(curl);
-		curl = NULL;
-	}
-}
-
-static CURL *opkg_curl_init(curl_progress_func cb, void *data)
-{
-
-	if (curl == NULL) {
-		curl = curl_easy_init();
-
-#ifdef HAVE_SSLCURL
-		openssl_init();
-
-		if (conf->ssl_engine) {
-
-			/* use crypto engine */
-			if (curl_easy_setopt
-			    (curl, CURLOPT_SSLENGINE,
-			     conf->ssl_engine) != CURLE_OK) {
-				opkg_msg(ERROR,
-					 "Can't set crypto engine '%s'.\n",
-					 conf->ssl_engine);
-
-				opkg_curl_cleanup();
-				return NULL;
-			}
-			/* set the crypto engine as default */
-			if (curl_easy_setopt
-			    (curl, CURLOPT_SSLENGINE_DEFAULT, 1L) != CURLE_OK) {
-				opkg_msg(ERROR,
-					 "Can't set crypto engine '%s' as default.\n",
-					 conf->ssl_engine);
-
-				opkg_curl_cleanup();
-				return NULL;
-			}
-		}
-
-		/* cert & key can only be in PEM case in the same file */
-		if (conf->ssl_key_passwd) {
-			if (curl_easy_setopt
-			    (curl, CURLOPT_SSLKEYPASSWD,
-			     conf->ssl_key_passwd) != CURLE_OK) {
-				opkg_msg(DEBUG,
-					 "Failed to set key password.\n");
-			}
-		}
-
-		/* sets the client certificate and its type */
-		if (conf->ssl_cert_type) {
-			if (curl_easy_setopt
-			    (curl, CURLOPT_SSLCERTTYPE,
-			     conf->ssl_cert_type) != CURLE_OK) {
-				opkg_msg(DEBUG,
-					 "Failed to set certificate format.\n");
-			}
-		}
-		/* SSL cert name isn't mandatory */
-		if (conf->ssl_cert) {
-			curl_easy_setopt(curl, CURLOPT_SSLCERT, conf->ssl_cert);
-		}
-
-		/* sets the client key and its type */
-		if (conf->ssl_key_type) {
-			if (curl_easy_setopt
-			    (curl, CURLOPT_SSLKEYTYPE,
-			     conf->ssl_key_type) != CURLE_OK) {
-				opkg_msg(DEBUG, "Failed to set key format.\n");
-			}
-		}
-		if (conf->ssl_key) {
-			if (curl_easy_setopt
-			    (curl, CURLOPT_SSLKEY, conf->ssl_key) != CURLE_OK) {
-				opkg_msg(DEBUG, "Failed to set key.\n");
-			}
-		}
-
-		/* Should we verify the peer certificate ? */
-		if (conf->ssl_dont_verify_peer) {
-			/*
-			 * CURLOPT_SSL_VERIFYPEER default is nonzero (curl => 7.10)
-			 */
-			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
-		}
-
-		/* certification authority file and/or path */
-		if (conf->ssl_ca_file) {
-			curl_easy_setopt(curl, CURLOPT_CAINFO,
-					 conf->ssl_ca_file);
-		}
-		if (conf->ssl_ca_path) {
-			curl_easy_setopt(curl, CURLOPT_CAPATH,
-					 conf->ssl_ca_path);
-		}
-#endif
-
-		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
-		curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
-		if (conf->http_proxy || conf->ftp_proxy) {
-			char *userpwd;
-			sprintf_alloc(&userpwd, "%s:%s", conf->proxy_user,
-				      conf->proxy_passwd);
-			curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, userpwd);
-			free(userpwd);
-		}
-	}
-
-	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, (cb == NULL));
-	if (cb) {
-		curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, data);
-		curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, cb);
-	}
-
-	return curl;
-
-}
 #endif

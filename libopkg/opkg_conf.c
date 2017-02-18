@@ -74,18 +74,6 @@ opkg_option_t options[] = {
 	{"signature_ca_file", OPKG_OPT_TYPE_STRING, &_conf.signature_ca_file},
 	{"signature_ca_path", OPKG_OPT_TYPE_STRING, &_conf.signature_ca_path},
 #endif
-#if defined(HAVE_SSLCURL) && defined(HAVE_CURL)
-	{"ssl_engine", OPKG_OPT_TYPE_STRING, &_conf.ssl_engine},
-	{"ssl_cert", OPKG_OPT_TYPE_STRING, &_conf.ssl_cert},
-	{"ssl_cert_type", OPKG_OPT_TYPE_STRING, &_conf.ssl_cert_type},
-	{"ssl_key", OPKG_OPT_TYPE_STRING, &_conf.ssl_key},
-	{"ssl_key_type", OPKG_OPT_TYPE_STRING, &_conf.ssl_key_type},
-	{"ssl_key_passwd", OPKG_OPT_TYPE_STRING, &_conf.ssl_key_passwd},
-	{"ssl_ca_file", OPKG_OPT_TYPE_STRING, &_conf.ssl_ca_file},
-	{"ssl_ca_path", OPKG_OPT_TYPE_STRING, &_conf.ssl_ca_path},
-	{"ssl_dont_verify_peer", OPKG_OPT_TYPE_BOOL,
-	 &_conf.ssl_dont_verify_peer},
-#endif
 	{NULL, 0, NULL}
 };
 
