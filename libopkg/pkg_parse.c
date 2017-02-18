@@ -63,7 +63,7 @@ static void parse_conffiles(pkg_t * pkg, const char *cstr)
 
 int parse_version(pkg_t * pkg, const char *vstr)
 {
-	char *colon, *rev;
+	char *colon, *dup, *rev;
 
 	if (strncmp(vstr, "Version:", 8) == 0)
 		vstr += 8;
@@ -81,14 +81,17 @@ int parse_version(pkg_t * pkg, const char *vstr)
 		vstr = ++colon;
 	}
 
-	rev = strrchr(vstr, '-');
+
+	dup = xstrdup(vstr);
+	rev = strrchr(dup, '-');
 
 	if (rev) {
-		pkg_set_string(pkg, PKG_REVISION, rev + 1);
-		pkg_set_raw(pkg, PKG_VERSION, vstr, rev - vstr - 1);
-	} else {
-		pkg_set_string(pkg, PKG_VERSION, vstr);
+		*rev++ = '\0';
+		pkg_set_string(pkg, PKG_REVISION, rev);
 	}
+
+	pkg_set_string(pkg, PKG_VERSION, dup);
+	free(dup);
 
 	return 0;
 }
