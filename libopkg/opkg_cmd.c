@@ -142,7 +142,7 @@ static int opkg_update_cmd(int argc, char **argv)
 				 list_file_name);
 		}
 		free(url);
-#if defined(HAVE_GPGME) || defined(HAVE_OPENSSL) || defined(HAVE_USIGN)
+#if defined(HAVE_OPENSSL) || defined(HAVE_USIGN)
 		if (pkglist_dl_error == 0 && conf->check_signature) {
 			/* download detached signitures to verify the package lists */
 			/* get the url for the sig file */

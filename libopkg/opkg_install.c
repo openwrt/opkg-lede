@@ -1344,7 +1344,7 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 	}
 
 	/* check that the repository is valid */
-#if defined(HAVE_GPGME) || defined(HAVE_OPENSSL) || defined(HAVE_USIGN)
+#if defined(HAVE_OPENSSL) || defined(HAVE_USIGN)
 	char *list_file_name, *sig_file_name, *lists_dir;
 
 	/* check to ensure the package has come from a repository */

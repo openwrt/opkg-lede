@@ -42,9 +42,7 @@
 #include <openssl/ssl.h>
 #endif
 
-#if defined(HAVE_GPGME)
-#include <gpgme.h>
-#elif defined(HAVE_OPENSSL)
+#if defined(HAVE_OPENSSL)
 #include <openssl/bio.h>
 #include <openssl/objects.h>
 #include <openssl/x509.h>
@@ -375,71 +373,6 @@ int opkg_verify_file(char *text_file, char *sig_file)
 		return -1;
 
 	return 0;
-#elif defined HAVE_GPGME
-	if (conf->check_signature == 0)
-		return 0;
-	int status = -1;
-	gpgme_ctx_t ctx;
-	gpgme_data_t sig, text, key;
-	gpgme_error_t err;
-	gpgme_verify_result_t result;
-	gpgme_signature_t s;
-	char *trusted_path = NULL;
-
-	gpgme_check_version(NULL);
-
-	err = gpgme_new(&ctx);
-
-	if (err)
-		return -1;
-
-	sprintf_alloc(&trusted_path, "%s/%s", conf->offline_root,
-		      "/etc/opkg/trusted.gpg");
-	err = gpgme_data_new_from_file(&key, trusted_path, 1);
-	free(trusted_path);
-	if (err) {
-		return -1;
-	}
-	err = gpgme_op_import(ctx, key);
-	if (err) {
-		gpgme_data_release(key);
-		return -1;
-	}
-	gpgme_data_release(key);
-
-	err = gpgme_data_new_from_file(&sig, sig_file, 1);
-	if (err) {
-		gpgme_release(ctx);
-		return -1;
-	}
-
-	err = gpgme_data_new_from_file(&text, text_file, 1);
-	if (err) {
-		gpgme_data_release(sig);
-		gpgme_release(ctx);
-		return -1;
-	}
-
-	err = gpgme_op_verify(ctx, sig, text, NULL);
-
-	result = gpgme_op_verify_result(ctx);
-	if (!result)
-		return -1;
-
-	/* see if any of the signitures matched */
-	s = result->signatures;
-	while (s) {
-		status = gpg_err_code(s->status);
-		if (status == GPG_ERR_NO_ERROR)
-			break;
-		s = s->next;
-	}
-
-	gpgme_data_release(sig);
-	gpgme_data_release(text);
-	gpgme_release(ctx);
-
-	return status;
 #elif defined HAVE_OPENSSL
 	X509_STORE *store = NULL;
 	PKCS7 *p7 = NULL;
