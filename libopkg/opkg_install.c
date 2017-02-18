@@ -1149,15 +1149,12 @@ static int resolve_conffiles(pkg_t * pkg)
 
 		if (file_exists(cf_backup)) {
 			/* Let's compute md5 to test if files are changed */
-#ifdef HAVE_MD5
 			if (cf->value && strlen(cf->value) > 33) {
 				chksum = file_sha256sum_alloc(cf_backup);
 			} else {
 				chksum = file_md5sum_alloc(cf_backup);
 			}
-#else
-			chksum = file_sha256sum_alloc(cf_backup);
-#endif
+
 			if (chksum && cf->value
 			    && strcmp(cf->value, chksum) != 0) {
 				if (conf->force_maintainer) {
@@ -1268,9 +1265,7 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 	abstract_pkg_t *ab_pkg = NULL;
 	int old_state_flag;
 	char *file_md5, *pkg_md5;
-#ifdef HAVE_SHA256
 	char *file_sha256, *pkg_sha256;
-#endif
 	sigset_t newset, oldset;
 	const char *local_filename;
 	time_t now;
@@ -1384,7 +1379,6 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 	}
 #endif
 
-#ifdef HAVE_MD5
 	/* Check for md5 values */
 	pkg_md5 = pkg_get_md5(pkg);
 	if (pkg_md5) {
@@ -1405,9 +1399,7 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 		if (file_md5)
 			free(file_md5);
 	}
-#endif
 
-#ifdef HAVE_SHA256
 	/* Check for sha256 value */
 	pkg_sha256 = pkg_get_sha256(pkg);
 	if (pkg_sha256) {
@@ -1429,7 +1421,7 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 		if (file_sha256)
 			free(file_sha256);
 	}
-#endif
+
 	if (conf->download_only) {
 		if (conf->nodeps == 0) {
 			err = satisfy_dependencies_for(pkg);

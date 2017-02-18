@@ -847,13 +847,11 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 			if (p) {
 				fprintf(fp, "Section: %s\n", p);
 			}
-#if defined HAVE_SHA256
 		} else if (strcasecmp(field, "SHA256sum") == 0) {
 			p = pkg_get_string(pkg, PKG_SHA256SUM);
 			if (p) {
 				fprintf(fp, "SHA256sum: %s\n", p);
 			}
-#endif
 		} else if (strcasecmp(field, "Size") == 0) {
 			i = pkg_get_int(pkg, PKG_SIZE);
 			if (i) {

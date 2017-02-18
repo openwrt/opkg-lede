@@ -50,15 +50,12 @@ int conffile_has_been_modified(conffile_t * conffile)
 
 	root_filename = root_filename_alloc(filename);
 
-#ifdef HAVE_MD5
 	if (conffile->value && strlen(conffile->value) > 33) {
 		chksum = file_sha256sum_alloc(root_filename);
 	} else {
 		chksum = file_md5sum_alloc(root_filename);
 	}
-#else
-	chksum = file_sha256sum_alloc(root_filename);
-#endif
+
 	if (chksum && (ret = strcmp(chksum, conffile->value))) {
 		opkg_msg(INFO, "Conffile %s:\n\told chk=%s\n\tnew chk=%s\n",
 			 conffile->name, chksum, conffile->value);

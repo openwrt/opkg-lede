@@ -225,10 +225,8 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 	case 'S':
 		if ((mask & PFM_SECTION) && is_field("Section", line))
 			pkg_set_string(pkg, PKG_SECTION, line + strlen("Section") + 1);
-#ifdef HAVE_SHA256
 		else if ((mask & PFM_SHA256SUM) && is_field("SHA256sum", line))
 			pkg_set_sha256(pkg, line + strlen("SHA256sum") + 1);
-#endif
 		else if ((mask & PFM_SIZE) && is_field("Size", line)) {
 			pkg_set_int(pkg, PKG_SIZE, strtoul(line + strlen("Size") + 1, NULL, 0));
 		} else if ((mask & PFM_SOURCE) && is_field("Source", line))
