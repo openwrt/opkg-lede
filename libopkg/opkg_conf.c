@@ -70,10 +70,6 @@ opkg_option_t options[] = {
 	{"size", OPKG_OPT_TYPE_BOOL, &_conf.size},
 	{"tmp_dir", OPKG_OPT_TYPE_STRING, &_conf.tmp_dir},
 	{"verbosity", OPKG_OPT_TYPE_INT, &_conf.verbosity},
-#if defined(HAVE_OPENSSL)
-	{"signature_ca_file", OPKG_OPT_TYPE_STRING, &_conf.signature_ca_file},
-	{"signature_ca_path", OPKG_OPT_TYPE_STRING, &_conf.signature_ca_path},
-#endif
 	{NULL, 0, NULL}
 };
 

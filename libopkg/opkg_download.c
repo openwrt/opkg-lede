@@ -31,29 +31,6 @@
 #include "opkg_defines.h"
 #include "libbb/libbb.h"
 
-#if defined(HAVE_OPENSSL)
-#include <openssl/conf.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/ssl.h>
-#endif
-
-#if defined(HAVE_OPENSSL)
-#include <openssl/bio.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
-#include <openssl/pem.h>
-#include <openssl/hmac.h>
-#endif
-
-#if defined(HAVE_OPENSSL)
-static void openssl_init(void);
-#endif
-
-#ifdef HAVE_OPENSSL
-static X509_STORE *setup_verify(char *CAfile, char *CApath);
-#endif
-
 static int str_starts_with(const char *str, const char *prefix)
 {
 	return (strncmp(str, prefix, strlen(prefix)) == 0);
@@ -333,57 +310,6 @@ int opkg_verify_file(char *text_file, char *sig_file)
 		return -1;
 
 	return 0;
-#elif defined HAVE_OPENSSL
-	X509_STORE *store = NULL;
-	PKCS7 *p7 = NULL;
-	BIO *in = NULL, *indata = NULL;
-
-	// Sig check failed by default !
-	int status = -1;
-
-	openssl_init();
-
-	// Set-up the key store
-	if (!
-	    (store =
-	     setup_verify(conf->signature_ca_file, conf->signature_ca_path))) {
-		opkg_msg(ERROR, "Can't open CA certificates.\n");
-		goto verify_file_end;
-	}
-	// Open a BIO to read the sig file
-	if (!(in = BIO_new_file(sig_file, "rb"))) {
-		opkg_msg(ERROR, "Can't open signature file %s.\n", sig_file);
-		goto verify_file_end;
-	}
-	// Read the PKCS7 block contained in the sig file
-	p7 = PEM_read_bio_PKCS7(in, NULL, NULL, NULL);
-	if (!p7) {
-		opkg_msg(ERROR, "Can't read signature file %s (Corrupted ?).\n",
-			 sig_file);
-		goto verify_file_end;
-	}
-
-	// Open the Package file to authenticate
-	if (!(indata = BIO_new_file(text_file, "rb"))) {
-		opkg_msg(ERROR, "Can't open file %s.\n", text_file);
-		goto verify_file_end;
-	}
-	// Let's verify the autenticity !
-	if (PKCS7_verify(p7, NULL, store, indata, NULL, PKCS7_BINARY) != 1) {
-		// Get Off My Lawn!
-		opkg_msg(ERROR, "Verification failure.\n");
-	} else {
-		// Victory !
-		status = 0;
-	}
-
-verify_file_end:
-	BIO_free(in);
-	BIO_free(indata);
-	PKCS7_free(p7);
-	X509_STORE_free(store);
-
-	return status;
 #else
 	/* mute `unused variable' warnings. */
 	(void)sig_file;
@@ -392,73 +318,3 @@ verify_file_end:
 	return 0;
 #endif
 }
-
-#if defined(HAVE_OPENSSL)
-static void openssl_init(void)
-{
-	static int init = 0;
-
-	if (!init) {
-		OPENSSL_config(NULL);
-		OpenSSL_add_all_algorithms();
-		ERR_load_crypto_strings();
-		init = 1;
-	}
-}
-
-#endif
-
-#if defined HAVE_OPENSSL
-static X509_STORE *setup_verify(char *CAfile, char *CApath)
-{
-	X509_STORE *store = NULL;
-	X509_LOOKUP *lookup = NULL;
-
-	if (!(store = X509_STORE_new())) {
-		// Something bad is happening...
-		goto end;
-	}
-	// adds the X509 file lookup method
-	lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file());
-	if (lookup == NULL) {
-		goto end;
-	}
-	// Autenticating against one CA file
-	if (CAfile) {
-		if (!X509_LOOKUP_load_file(lookup, CAfile, X509_FILETYPE_PEM)) {
-			// Invalid CA => Bye bye
-			opkg_msg(ERROR, "Error loading file %s.\n", CAfile);
-			goto end;
-		}
-	} else {
-		X509_LOOKUP_load_file(lookup, NULL, X509_FILETYPE_DEFAULT);
-	}
-
-	// Now look into CApath directory if supplied
-	lookup = X509_STORE_add_lookup(store, X509_LOOKUP_hash_dir());
-	if (lookup == NULL) {
-		goto end;
-	}
-
-	if (CApath) {
-		if (!X509_LOOKUP_add_dir(lookup, CApath, X509_FILETYPE_PEM)) {
-			opkg_msg(ERROR, "Error loading directory %s.\n",
-				 CApath);
-			goto end;
-		}
-	} else {
-		X509_LOOKUP_add_dir(lookup, NULL, X509_FILETYPE_DEFAULT);
-	}
-
-	// All right !
-	ERR_clear_error();
-	return store;
-
-end:
-
-	X509_STORE_free(store);
-	return NULL;
-
-}
-
-#endif
