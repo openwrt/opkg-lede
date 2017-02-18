@@ -5,6 +5,7 @@ PROJECT(opkg C)
 SET(HOST_CPU "" CACHE STRING "Override Host CPU")
 SET(BUILD_CPU "" CACHE STRING "Override Host CPU")
 SET(LOCK_FILE "/var/lock/opkg.lock" CACHE STRING "Override lock file path")
+SET(VERSION "" CACHE STRING "Override version")
 
 OPTION(STATIC_UBOX "Statically link libubox" OFF)
 OPTION(BUILD_TESTS "Build test programs" ON)
@@ -17,13 +18,15 @@ IF(NOT BUILD_CPU)
 	SET(BUILD_CPU "${CMAKE_SYSTEM_PROCESSOR}")
 ENDIF()
 
-EXECUTE_PROCESS(COMMAND git log -1 "--format=%h (%ci)"
-	OUTPUT_VARIABLE GIT_VERSION
-	OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+IF(NOT VERSION)
+	EXECUTE_PROCESS(COMMAND git log -1 "--format=%h (%ci)"
+		OUTPUT_VARIABLE VERSION
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+ENDIF()
 
-IF(NOT GIT_VERSION)
-	SET(GIT_VERSION "unknown")
+IF(NOT VERSION)
+	SET(VERSION "unknown")
 ENDIF()
 
 ADD_DEFINITIONS(-Os -Wall --std=gnu99 -g3 -Wmissing-declarations
@@ -33,7 +36,7 @@ ADD_DEFINITIONS(-Os -Wall --std=gnu99 -g3 -Wmissing-declarations
 	-DOPKGLIBDIR="/usr/lib"
 	-DHOST_CPU_STR="${HOST_CPU}"
 	-DBUILD_CPU=${BUILD_CPU}
-	-DVERSION="${GIT_VERSION}"
+	-DVERSION="${VERSION}"
 )
 
 ADD_SUBDIRECTORY(libbb)
