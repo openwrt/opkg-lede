@@ -2,10 +2,11 @@ cmake_minimum_required(VERSION 2.6)
 
 PROJECT(opkg C)
 
-OPTION(HOST_CPU "Override Host CPU")
-OPTION(BUILD_CPU "Override Host CPU")
-OPTION(LOCK_FILE "Override lock file path" /var/lock/opkg.lock)
-OPTION(STATIC_UBOX "Statically link libubox")
+SET(HOST_CPU "" CACHE STRING "Override Host CPU")
+SET(BUILD_CPU "" CACHE STRING "Override Host CPU")
+SET(LOCK_FILE "/var/lock/opkg.lock" CACHE STRING "Override lock file path")
+
+OPTION(STATIC_UBOX "Statically link libubox" OFF)
 OPTION(BUILD_TESTS "Build test programs" ON)
 
 IF(NOT HOST_CPU)
