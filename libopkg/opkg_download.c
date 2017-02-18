@@ -52,10 +52,6 @@
 #include <openssl/hmac.h>
 #endif
 
-#ifdef HAVE_PATHFINDER
-#include "opkg_pathfinder.h"
-#endif
-
 #if defined(HAVE_OPENSSL) || defined(HAVE_SSLCURL)
 static void openssl_init(void);
 #endif
@@ -473,15 +469,6 @@ int opkg_verify_file(char *text_file, char *sig_file)
 			 sig_file);
 		goto verify_file_end;
 	}
-#if defined(HAVE_PATHFINDER)
-	if (conf->check_x509_path) {
-		if (!pkcs7_pathfinder_verify_signers(p7)) {
-			opkg_msg(ERROR, "pkcs7_pathfinder_verify_signers: "
-				 "Path verification failed.\n");
-			goto verify_file_end;
-		}
-	}
-#endif
 
 	// Open the Package file to authenticate
 	if (!(indata = BIO_new_file(text_file, "rb"))) {
@@ -671,21 +658,6 @@ static CURL *opkg_curl_init(curl_progress_func cb, void *data)
 			 * CURLOPT_SSL_VERIFYPEER default is nonzero (curl => 7.10)
 			 */
 			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
-		} else {
-#ifdef HAVE_PATHFINDER
-			if (conf->check_x509_path) {
-				if (curl_easy_setopt
-				    (curl, CURLOPT_SSL_CTX_FUNCTION,
-				     curl_ssl_ctx_function) != CURLE_OK) {
-					opkg_msg(DEBUG,
-						 "Failed to set ssl path verification callback.\n");
-				} else {
-					curl_easy_setopt(curl,
-							 CURLOPT_SSL_CTX_DATA,
-							 NULL);
-				}
-			}
-#endif
 		}
 
 		/* certification authority file and/or path */

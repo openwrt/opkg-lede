@@ -104,9 +104,6 @@ struct opkg_conf {
 	char *ssl_ca_path;
 	int ssl_dont_verify_peer;
 #endif
-#ifdef HAVE_PATHFINDER
-	int check_x509_path;
-#endif
 
 	/* proxy options */
 	char *http_proxy;

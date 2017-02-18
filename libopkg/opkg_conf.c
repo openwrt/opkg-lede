@@ -74,9 +74,6 @@ opkg_option_t options[] = {
 	{"signature_ca_file", OPKG_OPT_TYPE_STRING, &_conf.signature_ca_file},
 	{"signature_ca_path", OPKG_OPT_TYPE_STRING, &_conf.signature_ca_path},
 #endif
-#if defined(HAVE_PATHFINDER)
-	{"check_x509_path", OPKG_OPT_TYPE_BOOL, &_conf.check_x509_path},
-#endif
 #if defined(HAVE_SSLCURL) && defined(HAVE_CURL)
 	{"ssl_engine", OPKG_OPT_TYPE_STRING, &_conf.ssl_engine},
 	{"ssl_cert", OPKG_OPT_TYPE_STRING, &_conf.ssl_cert},
@@ -491,9 +488,6 @@ int opkg_conf_load(void)
 
 	conf->restrict_to_default_dest = 0;
 	conf->default_dest = NULL;
-#if defined(HAVE_PATHFINDER)
-	conf->check_x509_path = 1;
-#endif
 
 	if (!conf->offline_root)
 		conf->offline_root = xstrdup(getenv("OFFLINE_ROOT"));
