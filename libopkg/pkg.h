@@ -179,12 +179,14 @@ void *pkg_get_raw(const pkg_t *pkg, int id);
 
 static inline int pkg_set_int(pkg_t *pkg, int id, int val)
 {
-	return (intptr_t) pkg_set_raw(pkg, id, &val, sizeof(val));
+	int *res = pkg_set_raw(pkg, id, &val, sizeof(val));
+	return res ? *res : 0;
 }
 
 static inline int pkg_get_int(const pkg_t *pkg, int id)
 {
-	return (intptr_t) pkg_get_raw(pkg, id);
+	int *ptr = pkg_get_raw(pkg, id);
+	return ptr ? *ptr : 0;
 }
 
 char *pkg_set_string(pkg_t *pkg, int id, const char *s);
