@@ -9,6 +9,7 @@ SET(VERSION "" CACHE STRING "Override version")
 
 OPTION(STATIC_UBOX "Statically link libubox" OFF)
 OPTION(BUILD_TESTS "Build test programs" ON)
+OPTION(ENABLE_USIGN "Enable usign support" ON)
 
 IF(NOT HOST_CPU)
 	SET(HOST_CPU "${CMAKE_HOST_SYSTEM_PROCESSOR}")
@@ -38,6 +39,10 @@ ADD_DEFINITIONS(-Os -Wall --std=gnu99 -g3 -Wmissing-declarations
 	-DBUILD_CPU=${BUILD_CPU}
 	-DVERSION="${VERSION}"
 )
+
+IF(ENABLE_USIGN)
+	ADD_DEFINITIONS(-DHAVE_USIGN)
+ENDIF()
 
 ADD_SUBDIRECTORY(libbb)
 ADD_SUBDIRECTORY(libopkg)
