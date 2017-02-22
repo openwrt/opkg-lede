@@ -116,6 +116,7 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 {
 	pkg_t *pkg = (pkg_t *) ptr;
 	abstract_pkg_t *ab_pkg = NULL;
+	conffile_list_t *cl;
 
 	/* these flags are a bit hackish... */
 	static int reading_conffiles = 0, reading_description = 0;
@@ -146,6 +147,11 @@ int pkg_parse_line(void *ptr, const char *line, uint mask)
 		if ((mask & PFM_CONFFILES) && is_field("Conffiles", line)) {
 			reading_conffiles = 1;
 			reading_description = 0;
+
+			cl = xcalloc(1, sizeof(*cl));
+			conffile_list_init(cl);
+			pkg_set_ptr(pkg, PKG_CONFFILES, cl);
+
 			goto dont_reset_flags;
 		} else if ((mask & PFM_CONFLICTS)
 			   && is_field("Conflicts", line))
