@@ -100,17 +100,13 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 			/* foreach possible satisfier */
 			for (j = 0; j < compound_depend->possibility_count; j++) {
 				/* foreach provided_by, which includes the abstract_pkg itself */
-				abstract_pkg_t *abpkg =
-				    possible_satisfiers[j]->pkg;
-				abstract_pkg_vec_t *ab_provider_vec =
-				    abpkg->provided_by;
+				abstract_pkg_t *abpkg = possible_satisfiers[j]->pkg;
+				abstract_pkg_vec_t *ab_provider_vec = abpkg->provided_by;
 				int nposs = ab_provider_vec->len;
-				abstract_pkg_t **ab_providers =
-				    ab_provider_vec->pkgs;
+				abstract_pkg_t **ab_providers = ab_provider_vec->pkgs;
 				int l;
 				for (l = 0; l < nposs; l++) {
-					pkg_vec_t *test_vec =
-					    ab_providers[l]->pkgs;
+					pkg_vec_t *test_vec = ab_providers[l]->pkgs;
 					/* if no depends on this one, try the first package that Provides this one */
 					if (!test_vec) {	/* no pkg_vec hooked up to the abstract_pkg!  (need another feed?) */
 						continue;
@@ -118,69 +114,45 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 
 					/* cruise this possiblity's pkg_vec looking for an installed version */
 					for (k = 0; k < test_vec->len; k++) {
-						pkg_t *pkg_scout =
-						    test_vec->pkgs[k];
+						pkg_t *pkg_scout = test_vec->pkgs[k];
 						/* not installed, and not already known about? */
-						if ((pkg_scout->state_want !=
-						     SW_INSTALL)
-						    && !pkg_scout->parent->
-						    dependencies_checked
-						    &&
-						    !is_pkg_in_pkg_vec
-						    (unsatisfied, pkg_scout)) {
+						if ((pkg_scout->state_want != SW_INSTALL)
+						    && !pkg_scout->parent->dependencies_checked
+						    && !is_pkg_in_pkg_vec(unsatisfied, pkg_scout)) {
 							char **newstuff = NULL;
 							int rc;
-							pkg_vec_t *tmp_vec =
-							    pkg_vec_alloc();
+							pkg_vec_t *tmp_vec = pkg_vec_alloc();
 							/* check for not-already-installed dependencies */
-							rc = pkg_hash_fetch_unsatisfied_dependencies(pkg_scout, tmp_vec, &newstuff);
+							rc = pkg_hash_fetch_unsatisfied_dependencies(
+								pkg_scout, tmp_vec, &newstuff);
 							if (newstuff == NULL) {
 								int m;
 								int ok = 1;
-								for (m = 0;
-								     m < rc;
-								     m++) {
-									pkg_t *p
-									    =
-									    tmp_vec->
-									    pkgs
-									    [m];
-									if (p->
-									    state_want
-									    ==
-									    SW_INSTALL)
+								for (m = 0; m < rc; m++) {
+									pkg_t *p = tmp_vec->pkgs[m];
+									if (p->state_want == SW_INSTALL)
 										continue;
-									opkg_msg
-									    (DEBUG,
+									opkg_msg(DEBUG,
 									     "Not installing %s due"
 									     " to requirement for %s.\n",
-									     pkg_scout->
-									     name,
-									     p->
-									     name);
+									     pkg_scout->name, p->name);
 									ok = 0;
 									break;
 								}
-								pkg_vec_free
-								    (tmp_vec);
+								pkg_vec_free(tmp_vec);
 								if (ok) {
 									/* mark this one for installation */
-									opkg_msg
-									    (NOTICE,
+									opkg_msg(NOTICE,
 									     "Adding satisfier for greedy"
 									     " dependence %s.\n",
-									     pkg_scout->
-									     name);
-									pkg_vec_insert
-									    (unsatisfied,
-									     pkg_scout);
+									     pkg_scout->name);
+									pkg_vec_insert(unsatisfied, pkg_scout);
 								}
 							} else {
 								opkg_msg(DEBUG,
 									 "Not installing %s due to "
 									 "broken depends.\n",
-									 pkg_scout->
-									 name);
+									 pkg_scout->name);
 								free(newstuff);
 							}
 						}
@@ -194,15 +166,12 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 		/* foreach possible satisfier, look for installed package  */
 		for (j = 0; j < compound_depend->possibility_count; j++) {
 			/* foreach provided_by, which includes the abstract_pkg itself */
-			depend_t *dependence_to_satisfy =
-			    possible_satisfiers[j];
-			abstract_pkg_t *satisfying_apkg =
-			    possible_satisfiers[j]->pkg;
+			depend_t *dependence_to_satisfy = possible_satisfiers[j];
+			abstract_pkg_t *satisfying_apkg = possible_satisfiers[j]->pkg;
 			pkg_t *satisfying_pkg =
-			    pkg_hash_fetch_best_installation_candidate
-			    (satisfying_apkg,
-			     pkg_installed_and_constraint_satisfied,
-			     dependence_to_satisfy, 1);
+				pkg_hash_fetch_best_installation_candidate(satisfying_apkg,
+					pkg_installed_and_constraint_satisfied,
+					dependence_to_satisfy, 1);
 			/* Being that I can't test constraing in pkg_hash, I will test it here */
 			if (satisfying_pkg != NULL) {
 				if (!pkg_installed_and_constraint_satisfied
@@ -222,20 +191,15 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 			/* foreach possible satisfier, look for installed package  */
 			for (j = 0; j < compound_depend->possibility_count; j++) {
 				/* foreach provided_by, which includes the abstract_pkg itself */
-				depend_t *dependence_to_satisfy =
-				    possible_satisfiers[j];
-				abstract_pkg_t *satisfying_apkg =
-				    possible_satisfiers[j]->pkg;
+				depend_t *dependence_to_satisfy = possible_satisfiers[j];
+				abstract_pkg_t *satisfying_apkg = possible_satisfiers[j]->pkg;
 				pkg_t *satisfying_pkg =
-				    pkg_hash_fetch_best_installation_candidate
-				    (satisfying_apkg,
-				     pkg_constraint_satisfied,
-				     dependence_to_satisfy, 1);
+					pkg_hash_fetch_best_installation_candidate(satisfying_apkg,
+						pkg_constraint_satisfied, dependence_to_satisfy, 1);
 				/* Being that I can't test constraing in pkg_hash, I will test it here too */
 				if (satisfying_pkg != NULL) {
-					if (!pkg_constraint_satisfied
-					    (satisfying_pkg,
-					     dependence_to_satisfy)) {
+					if (!pkg_constraint_satisfied(satisfying_pkg,
+							dependence_to_satisfy)) {
 						satisfying_pkg = NULL;
 					}
 				}
@@ -243,16 +207,13 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 				/* user request overrides package recommendation */
 				if (satisfying_pkg != NULL
 				    && (compound_depend->type == RECOMMEND
-					|| compound_depend->type == SUGGEST)
-				    && (satisfying_pkg->state_want ==
-					SW_DEINSTALL
-					|| satisfying_pkg->state_want ==
-					SW_PURGE)) {
+					    || compound_depend->type == SUGGEST)
+				    && (satisfying_pkg->state_want == SW_DEINSTALL
+					    || satisfying_pkg->state_want == SW_PURGE)) {
 					opkg_msg(NOTICE,
 						 "%s: ignoring recommendation for "
 						 "%s at user request\n",
-						 pkg->name,
-						 satisfying_pkg->name);
+						 pkg->name, satisfying_pkg->name);
 					continue;
 				}
 
@@ -271,37 +232,28 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 				/* failure to meet recommendations is not an error */
 				if (compound_depend->type != RECOMMEND
 				    && compound_depend->type != SUGGEST)
-					the_lost =
-					    add_unresolved_dep(pkg, the_lost,
-							       i);
+					the_lost = add_unresolved_dep(pkg, the_lost, i);
 				else
 					opkg_msg(NOTICE,
-						 "%s: unsatisfied recommendation for %s\n",
-						 pkg->name,
-						 compound_depend->
-						 possibilities[0]->pkg->name);
+						"%s: unsatisfied recommendation for %s\n",
+						pkg->name,
+						compound_depend->possibilities[0]->pkg->name);
 			} else {
 				if (compound_depend->type == SUGGEST) {
 					/* just mention it politely */
 					opkg_msg(NOTICE,
-						 "package %s suggests installing %s\n",
-						 pkg->name,
-						 satisfier_entry_pkg->name);
+						"package %s suggests installing %s\n",
+						pkg->name, satisfier_entry_pkg->name);
 				} else {
 					char **newstuff = NULL;
 
 					if (satisfier_entry_pkg != pkg &&
-					    !is_pkg_in_pkg_vec(unsatisfied,
-							       satisfier_entry_pkg))
+					    !is_pkg_in_pkg_vec(unsatisfied, satisfier_entry_pkg))
 					{
-						pkg_vec_insert(unsatisfied,
-							       satisfier_entry_pkg);
-						pkg_hash_fetch_unsatisfied_dependencies
-						    (satisfier_entry_pkg,
-						     unsatisfied, &newstuff);
-						the_lost =
-						    merge_unresolved(the_lost,
-								     newstuff);
+						pkg_vec_insert(unsatisfied, satisfier_entry_pkg);
+						pkg_hash_fetch_unsatisfied_dependencies(
+							satisfier_entry_pkg, unsatisfied, &newstuff);
+						the_lost = merge_unresolved(the_lost, newstuff);
 						if (newstuff)
 							free(newstuff);
 					}
@@ -390,21 +342,14 @@ pkg_vec_t *pkg_hash_fetch_conflicts(pkg_t * pkg)
 							 "Internal error: pkg_scout=NULL\n");
 						continue;
 					}
-					if ((pkg_scout->state_status ==
-					     SS_INSTALLED
-					     || pkg_scout->state_want ==
-					     SW_INSTALL)
-					    &&
-					    version_constraints_satisfied
-					    (possible_satisfier, pkg_scout)
-					    && !is_pkg_a_replaces(pkg_scout,
-								  pkg)) {
-						if (!is_pkg_in_pkg_vec
-						    (installed_conflicts,
-						     pkg_scout)) {
-							pkg_vec_insert
-							    (installed_conflicts,
-							     pkg_scout);
+					if ((pkg_scout->state_status == SS_INSTALLED
+						 || pkg_scout->state_want == SW_INSTALL)
+						&& version_constraints_satisfied(possible_satisfier,
+							pkg_scout)
+						&& !is_pkg_a_replaces(pkg_scout, pkg)) {
+						if (!is_pkg_in_pkg_vec(installed_conflicts,
+							pkg_scout)) {
+							pkg_vec_insert(installed_conflicts, pkg_scout);
 						}
 					}
 				}
