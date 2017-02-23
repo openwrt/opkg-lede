@@ -250,9 +250,9 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 					if (satisfier_entry_pkg != pkg &&
 					    !is_pkg_in_pkg_vec(unsatisfied, satisfier_entry_pkg))
 					{
-						pkg_vec_insert(unsatisfied, satisfier_entry_pkg);
 						pkg_hash_fetch_unsatisfied_dependencies(
 							satisfier_entry_pkg, unsatisfied, &newstuff);
+						pkg_vec_insert(unsatisfied, satisfier_entry_pkg);
 						the_lost = merge_unresolved(the_lost, newstuff);
 						if (newstuff)
 							free(newstuff);
