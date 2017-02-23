@@ -94,7 +94,6 @@ pkg_hash_check_installed_pkg_helper(const char *pkg_name, void *entry,
 		pkg_t *pkg = pkg_vec->pkgs[j];
 		if (pkg->state_status == SS_INSTALLED
 		    || pkg->state_status == SS_UNPACKED) {
-			printf("alloc item for pkg=%p\n", pkg);
 			item = active_list_head_new();
 			item->pkg = pkg;
 			active_list_add(head, item);
