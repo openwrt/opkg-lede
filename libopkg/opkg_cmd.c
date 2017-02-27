@@ -1136,7 +1136,7 @@ opkg_what_provides_replaces_cmd(enum what_field_type what_field_type, int argc,
 				abpkgs = pkg_get_ptr(pkg, (what_field_type == WHATPROVIDES) ? PKG_PROVIDES : PKG_REPLACES);
 
 				while (abpkgs && *abpkgs) {
-					apkg = *abpkgs;
+					apkg = *abpkgs++;
 
 					if (fnmatch(target, apkg->name, conf->nocase))
 						continue;
@@ -1148,7 +1148,6 @@ opkg_what_provides_replaces_cmd(enum what_field_type what_field_type, int argc,
 						opkg_msg(NOTICE, "\t%s %s\n", rel_str, apkg->name);
 
 					opkg_message(NOTICE, "\n");
-					abpkgs++;
 				}
 			}
 		}
