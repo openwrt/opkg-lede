@@ -678,6 +678,14 @@ void parse_providelist(pkg_t *pkg, char *list)
 
 		provided_abpkg = ensure_abstract_pkg_by_name(item);
 
+		if (provided_abpkg->state_flag & SF_NEED_DETAIL) {
+			if (!(ab_pkg->state_flag & SF_NEED_DETAIL)) {
+				opkg_msg(DEBUG, "propagating provided abpkg flag to "
+				                "provider abpkg %s\n", ab_pkg->name);
+				ab_pkg->state_flag |= SF_NEED_DETAIL;
+			}
+		}
+
 		if (!abstract_pkg_vec_contains(provided_abpkg->provided_by, ab_pkg))
 			abstract_pkg_vec_insert(provided_abpkg->provided_by, ab_pkg);
 
