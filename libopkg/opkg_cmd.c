@@ -1033,7 +1033,7 @@ opkg_what_depends_conflicts_cmd(enum depend_type what_field_type, int recursive,
 
 			deps = pkg_get_ptr(pkg, (what_field_type == CONFLICTS) ? PKG_CONFLICTS : PKG_DEPENDS);
 
-			for (cdep = deps; cdep->type; cdep++) {
+			for (cdep = deps; cdep && cdep->type; cdep++) {
 				if (what_field_type != cdep->type)
 					continue;
 
