@@ -529,7 +529,7 @@ char *deb_extract(const char *package_filename, FILE * out_stream,
 	char *ared_file = NULL;
 	char ar_magic[8];
 	int gz_err;
-	struct gzip_handle tar_outer, tar_inner;
+	struct gzip_handle tar_outer = { }, tar_inner = { };
 	file_header_t *tar_header;
 	ssize_t len;
 
@@ -561,7 +561,6 @@ char *deb_extract(const char *package_filename, FILE * out_stream,
 	/* set the buffer size */
 	setvbuf(deb_stream, NULL, _IOFBF, 0x8000);
 
-	memset(&tar_outer, 0, sizeof(tar_outer));
 	tar_outer.file = deb_stream;
 	gzip_exec(&tar_outer, NULL);
 
@@ -572,7 +571,6 @@ char *deb_extract(const char *package_filename, FILE * out_stream,
 			name_offset = 2;
 
 		if (strcmp(ared_file, tar_header->name + name_offset) == 0) {
-			memset(&tar_inner, 0, sizeof(tar_inner));
 			tar_inner.gzip = &tar_outer;
 			gzip_exec(&tar_inner, NULL);
 
