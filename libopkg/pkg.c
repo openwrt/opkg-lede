@@ -481,6 +481,9 @@ int pkg_merge(pkg_t * oldpkg, pkg_t * newpkg)
 	if (!oldpkg->essential)
 		oldpkg->essential = newpkg->essential;
 
+	if (!oldpkg->provided_by_hand)
+		oldpkg->provided_by_hand = newpkg->provided_by_hand;
+
 	return 0;
 }
 
