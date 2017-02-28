@@ -156,16 +156,16 @@ struct pkg {
 	   still being used within an outer loop. */
 	int installed_files_ref_cnt;
 
-	int essential:1;
+	unsigned int essential:1;
 /* Adding this flag, to "force" opkg to choose a "provided_by_hand" package, if there are multiple choice */
-	int provided_by_hand:1;
+	unsigned int provided_by_hand:1;
 
 	/* this flag specifies whether the package was installed to satisfy another
 	 * package's dependancies */
-	int auto_installed:1;
-	int is_upgrade:1;
+	unsigned int auto_installed:1;
+	unsigned int is_upgrade:1;
 
-	int arch_index:3;
+	unsigned int arch_index:3;
 
 	struct blob_buf blob;
 };
