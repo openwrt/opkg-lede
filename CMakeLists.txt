@@ -5,6 +5,7 @@ PROJECT(opkg C)
 SET(HOST_CPU "" CACHE STRING "Override Host CPU")
 SET(BUILD_CPU "" CACHE STRING "Override Host CPU")
 SET(LOCK_FILE "/var/lock/opkg.lock" CACHE STRING "Override lock file path")
+SET(PATH_SPEC "/usr/sbin:/usr/bin:/sbin:/bin" CACHE STRING "Override default PATH value")
 SET(VERSION "" CACHE STRING "Override version")
 
 OPTION(STATIC_UBOX "Statically link libubox" OFF)
@@ -37,6 +38,7 @@ ADD_DEFINITIONS(-Os -Wall --std=gnu99 -g3 -Wmissing-declarations
 	-DOPKGLIBDIR="/usr/lib"
 	-DHOST_CPU_STR="${HOST_CPU}"
 	-DBUILD_CPU=${BUILD_CPU}
+	-DPATH_SPEC="${PATH_SPEC}"
 	-DVERSION="${VERSION}"
 )
 
