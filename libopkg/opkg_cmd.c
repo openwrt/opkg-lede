@@ -214,13 +214,19 @@ static opkg_intercept_t opkg_prep_intercepts(void)
 
 	ctx = xcalloc(1, sizeof(*ctx));
 	ctx->oldpath = xstrdup(getenv("PATH"));
-	sprintf_alloc(&newpath, "%s/opkg/intercept:%s", DATADIR, ctx->oldpath);
+
+	sprintf_alloc(&newpath, "%s/opkg/intercept:%s", DATADIR,
+	              ctx->oldpath ? ctx->oldpath : PATH_SPEC);
+
 	sprintf_alloc(&ctx->statedir, "%s/opkg-intercept-XXXXXX",
-		      conf->tmp_dir);
+	              conf->tmp_dir);
 
 	if (mkdtemp(ctx->statedir) == NULL) {
 		opkg_perror(ERROR, "Failed to make temp dir %s", ctx->statedir);
-		free(ctx->oldpath);
+
+		if (ctx->oldpath)
+			free(ctx->oldpath);
+
 		free(ctx->statedir);
 		free(newpath);
 		free(ctx);
@@ -239,8 +245,13 @@ static int opkg_finalize_intercepts(opkg_intercept_t ctx)
 	DIR *dir;
 	int err = 0;
 
-	setenv("PATH", ctx->oldpath, 1);
-	free(ctx->oldpath);
+	if (ctx->oldpath) {
+		setenv("PATH", ctx->oldpath, 1);
+		free(ctx->oldpath);
+	}
+	else {
+		unsetenv("PATH");
+	}
 
 	dir = opendir(ctx->statedir);
 	if (dir) {
