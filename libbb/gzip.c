@@ -130,7 +130,7 @@ int gzip_exec(struct gzip_handle *zh, const char *filename)
 	return 0;
 }
 
-ssize_t gzip_read(struct gzip_handle * zh, char *buf, ssize_t len)
+ssize_t gzip_read(struct gzip_handle * zh, void *buf, ssize_t len)
 {
 	ssize_t ret;
 
