@@ -523,15 +523,11 @@ char *deb_extract(const char *package_filename, FILE * out_stream,
 		  const char *filename, int *err)
 {
 	FILE *deb_stream = NULL;
-	file_header_t *ar_header = NULL;
 	const char **file_list = NULL;
 	char *output_buffer = NULL;
 	char *ared_file = NULL;
-	char ar_magic[8];
-	int gz_err;
 	struct gzip_handle tar_outer = { }, tar_inner = { };
 	file_header_t *tar_header;
-	ssize_t len;
 
 	*err = 0;
 
