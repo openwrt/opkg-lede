@@ -41,11 +41,11 @@ static void to_devnull(int fd)
 		close(devnull);
 }
 
-void *gzip_thread(void *ptr)
+static void *gzip_thread(void *ptr)
 {
 	struct gzip_handle *zh = ptr;
 	char buf[4096];
-	int len, ret;
+	int len = 0, ret;
 
 	while (1) {
 		if (zh->file)
@@ -63,6 +63,8 @@ void *gzip_thread(void *ptr)
 
 	close(zh->wfd);
 	zh->wfd = -1;
+
+	return NULL;
 }
 
 int gzip_exec(struct gzip_handle *zh, const char *filename)
