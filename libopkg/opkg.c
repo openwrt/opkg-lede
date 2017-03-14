@@ -74,39 +74,6 @@ static int opkg_configure_packages(char *pkg_name)
 	return err;
 }
 
-struct _curl_cb_data {
-	opkg_progress_callback_t cb;
-	opkg_progress_data_t *progress_data;
-	void *user_data;
-	int start_range;
-	int finish_range;
-};
-
-int curl_progress_cb(struct _curl_cb_data *cb_data, double t,	/* dltotal */
-		     double d,	/* dlnow */
-		     double ultotal, double ulnow)
-{
-	int p = (t) ? d * 100 / t : 0;
-	static int prev = -1;
-	int progress = 0;
-
-	/* prevent the same value being sent twice (can occur due to rounding) */
-	if (p == prev)
-		return 0;
-	prev = p;
-
-	if (t < 1)
-		return 0;
-
-	progress = cb_data->start_range +
-	    (d / t * ((cb_data->finish_range - cb_data->start_range)));
-	cb_data->progress_data->percentage = progress;
-
-	(cb_data->cb) (cb_data->progress_data, cb_data->user_data);
-
-	return 0;
-}
-
 static struct opkg_conf saved_conf;
 /*** Public API ***/
 
@@ -293,7 +260,6 @@ opkg_install_package(const char *package_name,
 	/* download package and dependencies */
 	for (i = 0; i < deps->len; i++) {
 		pkg_t *pkg;
-		struct _curl_cb_data cb_data;
 		char *url;
 
 		pkg = deps->pkgs[i];
@@ -323,16 +289,7 @@ opkg_install_package(const char *package_name,
 
 		pkg_set_string(pkg, PKG_LOCAL_FILENAME, local_filename);
 
-		cb_data.cb = progress_callback;
-		cb_data.progress_data = &pdata;
-		cb_data.user_data = user_data;
-		/* 75% of "install" progress is for downloading */
-		cb_data.start_range = 75 * i / deps->len;
-		cb_data.finish_range = 75 * (i + 1) / deps->len;
-
-		err = opkg_download(url, local_filename,
-				    (curl_progress_func) curl_progress_cb,
-				    &cb_data, 0);
+		err = opkg_download(url, local_filename, NULL, NULL, 0);
 		free(url);
 
 		if (err) {
