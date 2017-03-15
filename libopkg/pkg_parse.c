@@ -206,7 +206,7 @@ int pkg_parse_line(void *ptr, char *line, uint mask)
 
 			if (ab_pkg && (ab_pkg->state_flag & SF_NEED_DETAIL)) {
 				if (!(pkg->state_flag & SF_NEED_DETAIL)) {
-					opkg_msg(DEPEND, "propagating abpkg flag to pkg %s\n", pkg->name);
+					opkg_msg(DEBUG, "propagating abpkg flag to pkg %s\n", pkg->name);
 					pkg->state_flag |= SF_NEED_DETAIL;
 				}
 			}
