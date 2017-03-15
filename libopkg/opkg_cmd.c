@@ -1217,12 +1217,21 @@ static int opkg_search_cmd(int argc, char **argv)
 
 static int opkg_compare_versions_cmd(int argc, char **argv)
 {
+	int rc;
+	pkg_t *p1, *p2;
+
 	if (argc == 3) {
 		/* this is a bit gross */
-		struct pkg p1, p2;
-		parse_version(&p1, argv[0]);
-		parse_version(&p2, argv[2]);
-		return pkg_version_satisfied(&p1, &p2, argv[1]) ? 0 : 1;
+		p1 = pkg_new();
+		p2 = pkg_new();
+		parse_version(p1, argv[0]);
+		parse_version(p2, argv[2]);
+		rc = pkg_version_satisfied(p1, p2, argv[1]);
+		pkg_deinit(p1);
+		pkg_deinit(p2);
+		free(p1);
+		free(p2);
+		return rc ? 0 : 1;
 	} else {
 		opkg_msg(ERROR,
 			 "opkg compare_versions <v1> <op> <v2>\n"
