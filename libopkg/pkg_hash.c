@@ -177,7 +177,7 @@ pkg_hash_add_from_file(const char *file_name,
 int pkg_hash_load_feeds(int state_flags)
 {
 	pkg_src_list_elt_t *iter;
-	pkg_src_t *src, *subdist;
+	pkg_src_t *src;
 	char *list_file, *lists_dir;
 
 	opkg_msg(INFO, "\n");
