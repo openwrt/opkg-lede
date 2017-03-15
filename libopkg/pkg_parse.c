@@ -112,7 +112,7 @@ static char *parse_architecture(pkg_t *pkg, const char *str)
 	return pkg_set_architecture(pkg, s, e - s);
 }
 
-int pkg_parse_line(void *ptr, const char *line, uint mask)
+int pkg_parse_line(void *ptr, char *line, uint mask)
 {
 	pkg_t *pkg = (pkg_t *) ptr;
 	abstract_pkg_t *ab_pkg = NULL;

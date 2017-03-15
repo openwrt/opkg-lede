@@ -1,7 +1,7 @@
 /* parse_util.h - the opkg package management system
 
    Steven M. Ayer
-   
+
    Copyright (C) 2002 Compaq Computer Corporation
 
    This program is free software; you can redistribute it and/or
@@ -23,7 +23,7 @@ char *parse_simple(const char *type, const char *line);
 char **parse_list(const char *raw, unsigned int *count, const char sep,
 		  int skip_field);
 
-typedef int (*parse_line_t) (void *, const char *, uint);
+typedef int (*parse_line_t) (void *, char *, uint);
 int parse_from_stream_nomalloc(parse_line_t parse_line, void *item, FILE * fp,
 			       uint mask, char **buf0, size_t buf0len);
 
