@@ -130,7 +130,7 @@ static int opkg_update_cmd(int argc, char **argv)
 
 		sprintf_alloc(&list_file_name, "%s/%s", lists_dir, src->name);
 		pkglist_dl_error = 0;
-		if (opkg_download(url, list_file_name, NULL, NULL, 0)) {
+		if (opkg_download(url, list_file_name, 0)) {
 			failures++;
 			pkglist_dl_error = 1;
 			opkg_msg(NOTICE,
@@ -160,7 +160,7 @@ static int opkg_update_cmd(int argc, char **argv)
 			sprintf_alloc(&tmp_file_name, "%s/%s.sig", lists_dir,
 				      src->name);
 
-			err = opkg_download(url, tmp_file_name, NULL, NULL, 0);
+			err = opkg_download(url, tmp_file_name, 0);
 			if (err) {
 				failures++;
 				opkg_msg(NOTICE,

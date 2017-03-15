@@ -289,7 +289,7 @@ opkg_install_package(const char *package_name,
 
 		pkg_set_string(pkg, PKG_LOCAL_FILENAME, local_filename);
 
-		err = opkg_download(url, local_filename, NULL, NULL, 0);
+		err = opkg_download(url, local_filename, 0);
 		free(url);
 
 		if (err) {
@@ -538,7 +538,7 @@ opkg_update_package_lists(opkg_progress_callback_t progress_callback,
 
 		sprintf_alloc(&list_file_name, "%s/%s", lists_dir, src->name);
 
-		if (opkg_download(url, list_file_name, NULL, NULL, 0)) {
+		if (opkg_download(url, list_file_name, 0)) {
 			opkg_msg(ERROR, "Couldn't retrieve %s\n", url);
 			result = -1;
 		}
@@ -563,7 +563,7 @@ opkg_update_package_lists(opkg_progress_callback_t progress_callback,
 			/* make sure there is no existing signature file */
 			unlink(sig_file_name);
 
-			err = opkg_download(url, sig_file_name, NULL, NULL, 0);
+			err = opkg_download(url, sig_file_name, 0);
 			if (err) {
 				opkg_msg(ERROR, "Couldn't retrieve %s\n", url);
 			} else {
@@ -767,7 +767,7 @@ int opkg_repository_accessibility_check(void)
 		iter1 = str_list_pop(src);
 		repositories--;
 
-		if (opkg_download(iter1->data, "/dev/null", NULL, NULL, 0))
+		if (opkg_download(iter1->data, "/dev/null", 0))
 			ret++;
 		str_list_elt_deinit(iter1);
 	}

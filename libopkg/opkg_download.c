@@ -38,7 +38,7 @@ static int str_starts_with(const char *str, const char *prefix)
 
 int
 opkg_download(const char *src, const char *dest_file_name,
-	      curl_progress_func cb, void *data, const short hide_error)
+              const short hide_error)
 {
 	int err = 0;
 
@@ -122,15 +122,14 @@ opkg_download(const char *src, const char *dest_file_name,
 }
 
 static int
-opkg_download_cache(const char *src, const char *dest_file_name,
-		    curl_progress_func cb, void *data)
+opkg_download_cache(const char *src, const char *dest_file_name)
 {
 	char *cache_name = xstrdup(src);
 	char *cache_location, *p;
 	int err = 0;
 
 	if (!conf->cache || str_starts_with(src, "file:")) {
-		err = opkg_download(src, dest_file_name, cb, data, 0);
+		err = opkg_download(src, dest_file_name, 0);
 		goto out1;
 	}
 
@@ -161,7 +160,7 @@ opkg_download_cache(const char *src, const char *dest_file_name,
 		if (file_exists(cache_location))
 			opkg_msg(NOTICE, "Copying %s.\n", cache_location);
 		else {
-			err = opkg_download(src, cache_location, cb, data, 0);
+			err = opkg_download(src, cache_location, 0);
 			if (err) {
 				(void)unlink(cache_location);
 				goto out2;
@@ -216,7 +215,7 @@ int opkg_download_pkg(pkg_t * pkg, const char *dir)
 	sprintf_alloc(&local_filename, "%s/%s", dir, stripped_filename);
 	pkg_set_string(pkg, PKG_LOCAL_FILENAME, local_filename);
 
-	err = opkg_download_cache(url, local_filename, NULL, NULL);
+	err = opkg_download_cache(url, local_filename);
 	free(url);
 
 	return err;
@@ -240,7 +239,7 @@ int opkg_prepare_url_for_install(const char *url, char **namep)
 		char *file_base = basename(file_basec);
 
 		sprintf_alloc(&tmp_file, "%s/%s", conf->tmp_dir, file_base);
-		err = opkg_download(url, tmp_file, NULL, NULL, 0);
+		err = opkg_download(url, tmp_file, 0);
 		if (err)
 			return err;
 
