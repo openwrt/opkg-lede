@@ -25,7 +25,7 @@ struct active_test {
 	struct active_list list;
 };
 
-struct active_test *active_test_new(char *str)
+static struct active_test *active_test_new(char *str)
 {
 	struct active_test *ans =
 	    (struct active_test *)calloc(1, sizeof(struct active_test));
@@ -34,12 +34,12 @@ struct active_test *active_test_new(char *str)
 	return ans;
 }
 
-void active_test_add(struct active_list *head, struct active_test *node)
+static void active_test_add(struct active_list *head, struct active_test *node)
 {
 	active_list_add(head, &node->list);
 }
 
-void active_test_add_depend(struct active_test *A, struct active_test *B)
+static void active_test_add_depend(struct active_test *A, struct active_test *B)
 {
 	active_list_add_depend(&A->list, &B->list);
 }
@@ -55,7 +55,7 @@ Then the sequence will be
 +: G M H I O J A B K N L C D E F
 -: F E D C L N K B A J O I H M G
 */
-void make_list(struct active_list *head)
+static void make_list(struct active_list *head)
 {
 	struct active_test *A = active_test_new("A");
 	struct active_test *B = active_test_new("B");
@@ -99,15 +99,16 @@ void make_list(struct active_list *head)
 	active_test_add_depend(L, N);
 }
 
-int active_test_compare(const void *a, const void *b)
+static int active_test_compare(const void *a, const void *b)
 {
 	struct active_list *first = (struct active_list *)a;
 	struct active_list *second = (struct active_list *)b;
-	return strcmp(list_entry(first, struct active_test, list),
-		      list_entry(second, struct active_test, list));
+	return memcmp(list_entry(first, struct active_test, list),
+		      list_entry(second, struct active_test, list),
+		      sizeof(struct active_test));
 }
 
-void show_list(struct active_list *head)
+static void show_list(struct active_list *head)
 {
 	struct active_list *ptr;
 	struct active_test *test;
