@@ -121,7 +121,6 @@ int pkg_parse_line(void *ptr, char *line, uint mask)
 	/* these flags are a bit hackish... */
 	static int reading_conffiles = 0, reading_description = 0;
 	static char *description = NULL;
-	char *s;
 	int ret = 0;
 
 	/* Exclude globally masked fields. */
