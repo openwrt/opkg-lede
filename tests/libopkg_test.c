@@ -10,7 +10,7 @@ pkg_t *find_pkg = NULL;
 
 #define TEST_PACKAGE "aspell"
 
-void progress_callback(const opkg_progress_data_t * progress, void *data)
+static void progress_callback(const opkg_progress_data_t * progress, void *data)
 {
 	printf("\r%s %3d%%\n", (char *)data, progress->percentage);
 	fflush(stdout);
@@ -23,13 +23,13 @@ static void list_pkg(pkg_t * pkg)
 	free(v);
 }
 
-void package_list_installed_callback(pkg_t * pkg, void *data)
+static void package_list_installed_callback(pkg_t * pkg, void *data)
 {
 	if (pkg->state_status == SS_INSTALLED)
 		list_pkg(pkg);
 }
 
-void package_list_callback(pkg_t * pkg, void *data)
+static void package_list_callback(pkg_t * pkg, void *data)
 {
 	static int install_count = 0;
 	static int total_count = 0;
@@ -49,12 +49,12 @@ void package_list_callback(pkg_t * pkg, void *data)
 	}
 }
 
-void package_list_upgradable_callback(pkg_t * pkg, void *data)
+static void package_list_upgradable_callback(pkg_t * pkg, void *data)
 {
 	list_pkg(pkg);
 }
 
-void print_package(pkg_t * pkg)
+static void print_package(pkg_t * pkg)
 {
 	char *v = pkg_version_str_alloc(pkg);
 	const char *tags = pkg_get_string(pkg, PKG_TAGS);
@@ -75,53 +75,6 @@ void print_package(pkg_t * pkg)
 	       tags ? tags : "",
 	       (unsigned long) pkg_get_int(pkg, PKG_SIZE), pkg->state_status);
 	free(v);
-}
-
-void opkg_test(void)
-{
-	int err;
-	pkg_t *pkg;
-
-	err = opkg_update_package_lists(progress_callback, "Updating...");
-	printf("\nopkg_update_package_lists returned %d\n", err);
-
-	opkg_list_packages(package_list_callback, NULL);
-	printf("\n");
-
-	if (find_pkg) {
-		printf("Finding package \"%s\"\n", find_pkg->name);
-		pkg =
-		    opkg_find_package(find_pkg->name,
-				      pkg_get_string(find_pkg, PKG_VERSION),
-				      pkg_get_architecture(find_pkg),
-				      find_pkg->src->name);
-		if (pkg) {
-			print_package(pkg);
-		} else
-			printf("Package \"%s\" not found!\n", find_pkg->name);
-	} else
-		printf("No package available to test find_package.\n");
-
-	err =
-	    opkg_install_package(TEST_PACKAGE, progress_callback,
-				 "Installing...");
-	printf("\nopkg_install_package returned %d\n", err);
-
-	err =
-	    opkg_upgrade_package(TEST_PACKAGE, progress_callback,
-				 "Upgrading...");
-	printf("\nopkg_upgrade_package returned %d\n", err);
-
-	err =
-	    opkg_remove_package(TEST_PACKAGE, progress_callback, "Removing...");
-	printf("\nopkg_remove_package returned %d\n", err);
-
-	printf("Listing upgradable packages...\n");
-	opkg_list_upgradable_packages(package_list_upgradable_callback, NULL);
-
-	err = opkg_upgrade_all(progress_callback, "Upgrading all...");
-	printf("\nopkg_upgrade_all returned %d\n", err);
-
 }
 
 int main(int argc, char **argv)
