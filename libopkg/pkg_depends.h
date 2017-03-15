@@ -65,6 +65,7 @@ void parse_deplist(pkg_t *pkg, enum depend_type type, char *list);
 
 abstract_pkg_t **init_providelist(pkg_t *pkg, int *count);
 void parse_providelist(pkg_t *pkg, char *list);
+void parse_replacelist(pkg_t *pkg, char *list);
 
 /**
  * pkg_replaces returns 1 if pkg->replaces contains one of replacee's provides and 0
