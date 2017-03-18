@@ -112,6 +112,83 @@ static char *parse_architecture(pkg_t *pkg, const char *str)
 	return pkg_set_architecture(pkg, s, e - s);
 }
 
+static void parse_alternatives(pkg_t *pkg, char *list)
+{
+	char *item, *tok;
+	struct pkg_alternatives *pkg_alts;
+	struct pkg_alternative **alts;
+	int nalts;
+
+	pkg_alts = pkg_get_ptr(pkg, PKG_ALTERNATIVES);
+	if (!pkg_alts) {
+		nalts = 0;
+		alts = NULL;
+	} else {
+		nalts = pkg_alts->nalts;
+		alts = pkg_alts->alts;
+	}
+
+	for (item = strtok_r(list, ",", &tok);
+			item;
+			item = strtok_r(NULL, ",", &tok)) {
+		enum pkg_alternative_field i;
+		char *val, *tok1;
+		/* the assignment was intended to quash the -Wmaybe-uninitialized warnings */
+		int prio = prio;
+		char *path = path, *altpath = altpath;
+
+		for (i = PAF_PRIO, val = strtok_r(item, ":", &tok1);
+				val && i < __PAF_MAX;
+				val = strtok_r(NULL, ":", &tok1), i++) {
+			switch (i) {
+				case PAF_PRIO:
+					prio = atoi(val);
+					break;
+				case PAF_PATH:
+					path = val;
+					break;
+				case PAF_ALTPATH:
+					altpath = val;
+					break;
+				default:
+					break;
+			}
+		}
+		if (!val && i == __PAF_MAX) {
+			char *_path, *_altpath;
+			struct pkg_alternative *alt;
+
+			/*
+			 * - path must be absolute
+			 * - altpath must be non-empty
+			 */
+			if (path[0] != '/' || !altpath[0])
+				continue;
+
+			alt = calloc_a(sizeof(*alt),
+					&_path, strlen(path) + 1,
+					&_altpath, strlen(altpath) + 1);
+			if (!alt)
+				continue;
+			strcpy(_path, path);
+			strcpy(_altpath, altpath);
+			alt->prio = prio;
+			alt->path = _path;
+			alt->altpath = _altpath;
+			alts = xrealloc(alts, sizeof(*alts) * (nalts + 1));
+			alts[nalts++] = alt;
+		}
+	}
+
+	if (nalts > 0) {
+		if (!pkg_alts)
+			pkg_alts = xmalloc(sizeof(*pkg_alts));
+		pkg_alts->nalts = nalts;
+		pkg_alts->alts = alts;
+		pkg_set_ptr(pkg, PKG_ALTERNATIVES, pkg_alts);
+	}
+}
+
 int pkg_parse_line(void *ptr, char *line, uint mask)
 {
 	pkg_t *pkg = (pkg_t *) ptr;
@@ -131,7 +208,9 @@ int pkg_parse_line(void *ptr, char *line, uint mask)
 
 	switch (*line) {
 	case 'A':
-		if ((mask & PFM_ARCHITECTURE) && is_field("Architecture", line))
+		if ((mask & PFM_ALTERNATIVES) && is_field("Alternatives", line))
+			parse_alternatives(pkg, line + strlen("Alternatives") + 1);
+		else if ((mask & PFM_ARCHITECTURE) && is_field("Architecture", line))
 			parse_architecture(pkg, line + strlen("Architecture") + 1);
 		else if ((mask & PFM_AUTO_INSTALLED)
 			   && is_field("Auto-Installed", line)) {

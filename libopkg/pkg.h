@@ -100,6 +100,7 @@ enum pkg_fields {
 	PKG_DEPENDS,
 	PKG_CONFLICTS,
 	PKG_CONFFILES,
+	PKG_ALTERNATIVES,
 };
 
 struct abstract_pkg {
@@ -117,6 +118,24 @@ struct abstract_pkg {
 };
 
 #include "pkg_depends.h"
+
+enum pkg_alternative_field {
+	PAF_PRIO,
+	PAF_PATH,
+	PAF_ALTPATH,
+	__PAF_MAX,
+};
+
+struct pkg_alternative {
+	int prio;
+	char *path;
+	char *altpath;
+};
+
+struct pkg_alternatives {
+	int nalts;
+	struct pkg_alternative **alts;
+};
 
 /* XXX: CLEANUP: I'd like to clean up pkg_t in several ways:
 

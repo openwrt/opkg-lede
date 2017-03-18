@@ -321,6 +321,20 @@ void pkg_deinit(pkg_t * pkg)
 
 			pkg_set_ptr(pkg, blob_id(cur), NULL);
 			break;
+		case PKG_ALTERNATIVES:
+			ptr = pkg_get_ptr(pkg, blob_id(cur));
+
+			if (ptr) {
+				struct pkg_alternatives *pkg_alts = ptr;
+
+				while (pkg_alts->nalts)
+					free(pkg_alts->alts[--pkg_alts->nalts]);
+				free(pkg_alts->alts);
+				free(pkg_alts);
+			}
+
+			pkg_set_ptr(pkg, blob_id(cur), NULL);
+			break;
 		}
 	}
 
@@ -636,7 +650,22 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 	switch (field[0]) {
 	case 'a':
 	case 'A':
-		if (strcasecmp(field, "Architecture") == 0) {
+		if (strcasecmp(field, "Alternatives") == 0) {
+			struct pkg_alternatives *pkg_alts = pkg_get_ptr(pkg, PKG_ALTERNATIVES);
+
+			if (pkg_alts && pkg_alts->nalts > 0) {
+				int i;
+				struct pkg_alternative *alt;
+
+				alt = pkg_alts->alts[0];
+				fprintf(fp, "Alternatives: %d:%s:%s", alt->prio, alt->path, alt->altpath);
+				for (i = 1; i < pkg_alts->nalts; i++) {
+					alt = pkg_alts->alts[i];
+					fprintf(fp, ", %d:%s:%s", alt->prio, alt->path, alt->altpath);
+				}
+				fputs("\n", fp);
+			}
+		} else if (strcasecmp(field, "Architecture") == 0) {
 			p = pkg_get_architecture(pkg);
 			if (p) {
 				fprintf(fp, "Architecture: %s\n",
@@ -938,6 +967,7 @@ void pkg_print_status(pkg_t * pkg, FILE * file)
 	pkg_formatted_field(file, pkg, "Conffiles");
 	pkg_formatted_field(file, pkg, "Installed-Time");
 	pkg_formatted_field(file, pkg, "Auto-Installed");
+	pkg_formatted_field(file, pkg, "Alternatives");
 	fputs("\n", file);
 }
 

@@ -21,6 +21,7 @@
 #include "opkg_configure.h"
 #include "opkg_message.h"
 #include "opkg_cmd.h"
+#include "pkg_alternatives.h"
 
 int opkg_configure(pkg_t * pkg)
 {
@@ -37,6 +38,8 @@ int opkg_configure(pkg_t * pkg)
 		opkg_msg(ERROR, "%s.postinst returned %d.\n", pkg->name, err);
 		return err;
 	}
+
+	pkg_alternatives_update(pkg);
 
 	return 0;
 }

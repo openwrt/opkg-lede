@@ -22,6 +22,7 @@
 #include "opkg_message.h"
 #include "opkg_remove.h"
 #include "opkg_cmd.h"
+#include "pkg_alternatives.h"
 #include "file_util.h"
 #include "sprintf_alloc.h"
 #include "libbb/libbb.h"
@@ -312,6 +313,7 @@ int opkg_remove_pkg(pkg_t * pkg, int from_upgrade)
 
 	remove_maintainer_scripts(pkg);
 	pkg->state_status = SS_NOT_INSTALLED;
+	pkg_alternatives_update(pkg);
 
 	if (parent_pkg)
 		parent_pkg->state_status = SS_NOT_INSTALLED;
