@@ -25,6 +25,7 @@ extern char *xreadlink(const char *path)
 		readsize = readlink(path, buf, bufsize);	/* 1st try */
 		if (readsize == -1) {
 			perror_msg("%s", path);
+			free(buf);
 			return NULL;
 		}
 	}
