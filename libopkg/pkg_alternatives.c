@@ -78,7 +78,7 @@ static int pkg_alternatives_update_path(pkg_t *pkg, const pkg_vec_t *installed, 
 		}
 		r = symlink(the_alt->altpath, path_in_dest);
 		if (r)
-			opkg_msg(INFO, "failed symlinking %s -> %s\n", path_in_dest, the_alt->altpath);
+			opkg_msg(ERROR, "failed symlinking %s -> %s\n", path_in_dest, the_alt->altpath);
 	} else {
 		unlink(path_in_dest);
 		r = 0;
