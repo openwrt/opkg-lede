@@ -52,6 +52,7 @@ enum {
 	ARGS_OPT_AUTOREMOVE,
 	ARGS_OPT_CACHE,
 	ARGS_OPT_FORCE_SIGNATURE,
+	ARGS_OPT_NO_CHECK_CERTIFICATE,
 	ARGS_OPT_SIZE,
 };
 
@@ -91,6 +92,8 @@ static struct option long_options[] = {
 	{"force_checksum", 0, 0, ARGS_OPT_FORCE_CHECKSUM},
 	{"force-signature", 0, 0, ARGS_OPT_FORCE_SIGNATURE},
 	{"force_signature", 0, 0, ARGS_OPT_FORCE_SIGNATURE},
+	{"no-check-certificate", 0, 0, ARGS_OPT_NO_CHECK_CERTIFICATE},
+	{"no_check_certificate", 0, 0, ARGS_OPT_NO_CHECK_CERTIFICATE},
 	{"noaction", 0, 0, ARGS_OPT_NOACTION},
 	{"download-only", 0, 0, ARGS_OPT_DOWNLOAD_ONLY},
 	{"nodeps", 0, 0, ARGS_OPT_NODEPS},
@@ -226,6 +229,9 @@ static int args_parse(int argc, char *argv[])
 		case ARGS_OPT_FORCE_SIGNATURE:
 			conf->force_signature = 1;
 			break;
+		case ARGS_OPT_NO_CHECK_CERTIFICATE:
+			conf->no_check_certificate = 1;
+			break;
 		case ':':
 			parse_err = -1;
 			break;
@@ -335,6 +341,7 @@ static void usage()
 	printf
 	    ("\t--force-remove	Remove package even if prerm script fails\n");
 	printf("\t--force-checksum	Don't fail on checksum mismatches\n");
+	printf("\t--no-check-certificate Don't validate SSL certificates\n");
 	printf("\t--noaction		No action -- test only\n");
 	printf("\t--download-only	No action -- download only\n");
 	printf("\t--nodeps		Do not follow dependencies\n");

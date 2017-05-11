@@ -78,6 +78,7 @@ struct opkg_conf {
 	int force_checksum;
 	int check_signature;
 	int force_signature;
+	int no_check_certificate;
 	int nodeps;		/* do not follow dependencies */
 	int nocase;		/* perform case insensitive matching */
 	char *offline_root;

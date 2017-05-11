@@ -87,11 +87,14 @@ opkg_download(const char *src, const char *dest_file_name,
 
 	{
 		int res;
-		const char *argv[8];
+		const char *argv[9];
 		int i = 0;
 
 		argv[i++] = "wget";
 		argv[i++] = "-q";
+		if (conf->no_check_certificate) {
+			argv[i++] = "--no-check-certificate";
+		}
 		if (conf->http_proxy || conf->ftp_proxy) {
 			argv[i++] = "-Y";
 			argv[i++] = "on";
