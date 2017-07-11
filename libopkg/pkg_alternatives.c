@@ -16,8 +16,10 @@
 #include <stdio.h>
 #include <sys/types.h>		/* stat */
 #include <sys/stat.h>
+#include <libgen.h>			/* dirname */
 #include <unistd.h>
 
+#include "file_util.h"
 #include "libbb/libbb.h"
 #include "opkg_message.h"
 #include "pkg.h"
@@ -76,9 +78,27 @@ static int pkg_alternatives_update_path(pkg_t *pkg, const pkg_vec_t *installed, 
 		} else if (errno != ENOENT) {
 			goto out;
 		}
-		r = symlink(the_alt->altpath, path_in_dest);
-		if (r)
-			opkg_msg(ERROR, "failed symlinking %s -> %s\n", path_in_dest, the_alt->altpath);
+		{
+			char *path_copy = xstrdup(path_in_dest);
+			char *path_parent = dirname(path_copy);
+
+			r = file_mkdir_hier(path_parent, 0755);
+			free(path_copy);
+			if (r) {
+				goto out;
+			}
+			r = symlink(the_alt->altpath, path_in_dest);
+			if (r && errno == EEXIST) {
+				/*
+				 * the strcmp & unlink check above will make sure that if EEXIST
+				 * happens, the symlink target also matches
+				 */
+				r = 0;
+			}
+			if (r) {
+				opkg_perror(ERROR, "failed symlinking %s -> %s", path_in_dest, the_alt->altpath);
+			}
+		}
 	} else {
 		unlink(path_in_dest);
 		r = 0;
