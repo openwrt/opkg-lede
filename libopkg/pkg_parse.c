@@ -333,18 +333,16 @@ int pkg_parse_line(void *ptr, char *line, uint mask)
 
 	case ' ':
 		if ((mask & PFM_DESCRIPTION) && reading_description) {
-			if (isatty(1)) {
-				description = xrealloc(description,
-							    strlen(description)
-							    + 1 + strlen(line) +
-							    1);
+			size_t len = (description ? strlen(description) : 0)
+				+ (isatty(1) ? 1 : 0) + strlen(line) + 1;
+
+			description = description ? xrealloc(description, len)
+				: xcalloc(len, 1);
+
+			if (isatty(1))
 				strcat(description, "\n");
-			} else {
-				description = xrealloc(description,
-							    strlen(description)
-							    + 1 + strlen(line));
-			}
-			strcat(description, (line));
+
+			strcat(description, line);
 			goto dont_reset_flags;
 		} else if ((mask & PFM_CONFFILES) && reading_conffiles) {
 			parse_conffiles(pkg, line);
