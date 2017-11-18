@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.6)
 
 PROJECT(opkg C)
 
+INCLUDE(TestBigEndian)
+
 SET(HOST_CPU "" CACHE STRING "Override Host CPU")
 SET(BUILD_CPU "" CACHE STRING "Override Host CPU")
 SET(LOCK_FILE "/var/lock/opkg.lock" CACHE STRING "Override lock file path")
@@ -31,6 +33,8 @@ IF(NOT VERSION)
 	SET(VERSION "unknown")
 ENDIF()
 
+TEST_BIG_ENDIAN(WORDS_BIGENDIAN)
+
 ADD_DEFINITIONS(-Os -Wall --std=gnu99 -g3 -Wmissing-declarations
 	-DDATADIR="/usr/share"
 	-DOPKGETCDIR="/etc"
@@ -44,6 +48,10 @@ ADD_DEFINITIONS(-Os -Wall --std=gnu99 -g3 -Wmissing-declarations
 
 IF(ENABLE_USIGN)
 	ADD_DEFINITIONS(-DHAVE_USIGN)
+ENDIF()
+
+IF(WORDS_BIGENDIAN)
+	ADD_DEFINITIONS(-DWORDS_BIGENDIAN)
 ENDIF()
 
 ADD_SUBDIRECTORY(libbb)
