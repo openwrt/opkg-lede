@@ -57,6 +57,7 @@ opkg_option_t options[] = {
 	{"no_check_certificate", OPKG_OPT_TYPE_BOOL, &_conf.no_check_certificate},
 	{"ftp_proxy", OPKG_OPT_TYPE_STRING, &_conf.ftp_proxy},
 	{"http_proxy", OPKG_OPT_TYPE_STRING, &_conf.http_proxy},
+	{"http_timeout", OPKG_OPT_TYPE_STRING, &_conf.http_timeout},
 	{"no_proxy", OPKG_OPT_TYPE_STRING, &_conf.no_proxy},
 	{"test", OPKG_OPT_TYPE_BOOL, &_conf.noaction},
 	{"noaction", OPKG_OPT_TYPE_BOOL, &_conf.noaction},

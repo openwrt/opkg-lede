@@ -92,6 +92,7 @@ struct opkg_conf {
 
 	/* proxy options */
 	char *http_proxy;
+	char *http_timeout;
 	char *ftp_proxy;
 	char *no_proxy;
 	char *proxy_user;
