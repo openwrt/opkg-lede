@@ -49,11 +49,12 @@ opkg_download(const char *src, const char *dest_file_name,
 	opkg_msg(NOTICE, "Downloading %s\n", src);
 
 	if (str_starts_with(src, "file:")) {
-		const char *file_src = src + 5;
+		char *file_src = urldecode_path(src + 5);
 		opkg_msg(INFO, "Copying %s to %s...", file_src, dest_file_name);
 		err = file_copy(file_src, dest_file_name);
 		opkg_msg(INFO, "Done.\n");
 		free(src_basec);
+		free(file_src);
 		return err;
 	}
 
