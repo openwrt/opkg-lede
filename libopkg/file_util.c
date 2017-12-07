@@ -125,17 +125,30 @@ int file_mkdir_hier(const char *path, long mode)
 	return make_directory(path, mode, FILEUTILS_RECUR);
 }
 
+
+static int hex2bin(unsigned char x)
+{
+	if (x >= 'a' && x <= 'f')
+		return x - 'a' + 10;
+	else if (x >= 'A' && x <= 'F')
+		return x - 'A' + 10;
+	else if (x >= '0' && x <= '9')
+		return x - '0';
+	else
+		return 0;
+}
+
+static const unsigned char bin2hex[16] = {
+	'0', '1', '2', '3',
+	'4', '5', '6', '7',
+	'8', '9', 'a', 'b',
+	'c', 'd', 'e', 'f'
+};
+
 char *file_md5sum_alloc(const char *file_name)
 {
 	static const int md5sum_bin_len = 16;
 	static const int md5sum_hex_len = 32;
-
-	static const unsigned char bin2hex[16] = {
-		'0', '1', '2', '3',
-		'4', '5', '6', '7',
-		'8', '9', 'a', 'b',
-		'c', 'd', 'e', 'f'
-	};
 
 	int i, len;
 	char *md5sum_hex;
@@ -164,13 +177,6 @@ char *file_sha256sum_alloc(const char *file_name)
 {
 	static const int sha256sum_bin_len = 32;
 	static const int sha256sum_hex_len = 64;
-
-	static const unsigned char bin2hex[16] = {
-		'0', '1', '2', '3',
-		'4', '5', '6', '7',
-		'8', '9', 'a', 'b',
-		'c', 'd', 'e', 'f'
-	};
 
 	int i, err;
 	FILE *file;
@@ -212,13 +218,6 @@ char *checksum_bin2hex(const char *src, size_t len)
 	unsigned char *p;
 	static unsigned char buf[65];
 	const unsigned char *s = (unsigned char *)src;
-	static const unsigned char bin2hex[16] = {
-		'0', '1', '2', '3',
-		'4', '5', '6', '7',
-		'8', '9', 'a', 'b',
-		'c', 'd', 'e', 'f'
-	};
-
 	if (!s || len > 32)
 		return NULL;
 
@@ -254,13 +253,10 @@ char *checksum_hex2bin(const char *src, size_t *len)
 		return NULL;
 	}
 
-#define hex(c) \
-	(c >= 'a' ? (c - 'a') : (c >= 'A' ? (c - 'A') : (c - '0')))
-
 	for (p = buf, *len = 0;
 	     slen > 0 && isxdigit(s[0]) && isxdigit(s[1]);
 	     slen--, s += 2, (*len)++)
-		*p++ = hex(s[0]) * 16 + hex(s[1]);
+		*p++ = hex2bin(s[0]) * 16 + hex2bin(s[1]);
 
 	return (char *)buf;
 }
@@ -377,23 +373,16 @@ static int urlencode_is_specialchar(char c)
 
 char *urlencode_path(const char *filename)
 {
-	static const char bin2hex[16] = {
-		'0', '1', '2', '3',
-		'4', '5', '6', '7',
-		'8', '9', 'a', 'b',
-		'c', 'd', 'e', 'f'
-	};
-
 	size_t len = 0;
-	const char *in;
-	char *copy, *out;
+	const unsigned char *in;
+	unsigned char *copy, *out;
 
-	for (in = filename; *in != 0; in++)
+	for (in = (unsigned char *)filename; *in != 0; in++)
 		len += urlencode_is_specialchar(*in) ? 3 : 1;
 
 	copy = xcalloc(1, len + 1);
 
-	for (in = filename, out = copy; *in != 0; in++) {
+	for (in = (unsigned char *)filename, out = copy; *in != 0; in++) {
 		if (urlencode_is_specialchar(*in)) {
 			*out++ = '%';
 			*out++ = bin2hex[*in / 16];
@@ -404,5 +393,5 @@ char *urlencode_path(const char *filename)
 		}
 	}
 
-	return copy;
+	return (char *)copy;
 }
