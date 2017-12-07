@@ -260,7 +260,7 @@ opkg_install_package(const char *package_name,
 	/* download package and dependencies */
 	for (i = 0; i < deps->len; i++) {
 		pkg_t *pkg;
-		char *url;
+		char *url, *urlencoded_path;
 
 		pkg = deps->pkgs[i];
 		if (pkg_get_string(pkg, PKG_LOCAL_FILENAME))
@@ -276,8 +276,9 @@ opkg_install_package(const char *package_name,
 		}
 
 		filename = pkg_get_string(pkg, PKG_FILENAME);
-
-		sprintf_alloc(&url, "%s/%s", pkg->src->value, filename);
+		urlencoded_path = urlencode_path(filename);
+		sprintf_alloc(&url, "%s/%s", pkg->src->value, urlencoded_path);
+		free(urlencoded_path);
 
 		/* Get the filename part, without any directory */
 		stripped_filename = strrchr(filename, '/');

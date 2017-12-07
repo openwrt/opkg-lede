@@ -186,6 +186,7 @@ int opkg_download_pkg(pkg_t * pkg, const char *dir)
 	char *url;
 	char *local_filename;
 	char *stripped_filename;
+	char *urlencoded_path;
 	char *filename;
 
 	if (pkg->src == NULL) {
@@ -204,7 +205,9 @@ int opkg_download_pkg(pkg_t * pkg, const char *dir)
 		return -1;
 	}
 
-	sprintf_alloc(&url, "%s/%s", pkg->src->value, filename);
+	urlencoded_path = urlencode_path(filename);
+	sprintf_alloc(&url, "%s/%s", pkg->src->value, urlencoded_path);
+	free(urlencoded_path);
 
 	/* The filename might be something like
 	   "../../foo.opk". While this is correct, and exactly what we
