@@ -346,3 +346,63 @@ int rm_r(const char *path)
 
 	return ret;
 }
+
+static int urlencode_is_specialchar(char c)
+{
+	switch (c) {
+	case ':':
+	case '?':
+	case '#':
+	case '[':
+	case ']':
+	case '@':
+	case '!':
+	case '$':
+	case '&':
+	case '\'':
+	case '(':
+	case ')':
+	case '*':
+	case '+':
+	case ',':
+	case ';':
+	case '=':
+	case '%':
+		return 1;
+
+	default:
+		return 0;
+	}
+}
+
+char *urlencode_path(const char *filename)
+{
+	static const char bin2hex[16] = {
+		'0', '1', '2', '3',
+		'4', '5', '6', '7',
+		'8', '9', 'a', 'b',
+		'c', 'd', 'e', 'f'
+	};
+
+	size_t len = 0;
+	const char *in;
+	char *copy, *out;
+
+	for (in = filename; *in != 0; in++)
+		len += urlencode_is_specialchar(*in) ? 3 : 1;
+
+	copy = xcalloc(1, len + 1);
+
+	for (in = filename, out = copy; *in != 0; in++) {
+		if (urlencode_is_specialchar(*in)) {
+			*out++ = '%';
+			*out++ = bin2hex[*in / 16];
+			*out++ = bin2hex[*in % 16];
+		}
+		else {
+			*out++ = *in;
+		}
+	}
+
+	return copy;
+}

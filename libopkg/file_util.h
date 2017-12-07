@@ -31,4 +31,6 @@ int rm_r(const char *path);
 char *checksum_bin2hex(const char *src, size_t len);
 char *checksum_hex2bin(const char *src, size_t *len);
 
+char *urlencode_path(const char *filename);
+
 #endif
