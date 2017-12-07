@@ -395,3 +395,23 @@ char *urlencode_path(const char *filename)
 
 	return (char *)copy;
 }
+
+char *urldecode_path(const char *filename)
+{
+	unsigned char *copy = (unsigned char *)xstrdup(filename);
+	unsigned char *in, *out;
+
+	for (in = copy, out = copy; *in != 0; in++) {
+		if (*in == '%' && isxdigit(in[1]) && isxdigit(in[2])) {
+			*out++ = hex2bin(in[1]) * 16 + hex2bin(in[2]);
+			in += 2;
+		}
+		else {
+			*out++ = *in;
+		}
+	}
+
+	*out = 0;
+
+	return (char *)copy;
+}
