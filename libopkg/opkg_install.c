@@ -45,7 +45,7 @@ static int satisfy_dependencies_for(pkg_t * pkg)
 	int i, err;
 	pkg_vec_t *depends = pkg_vec_alloc();
 	pkg_t *dep;
-	char **tmp, **unresolved = NULL;
+	char **tmp, **unresolved = NULL, *prev = NULL;
 	int ndepends;
 
 	ndepends = pkg_hash_fetch_unsatisfied_dependencies(pkg, depends,
@@ -57,12 +57,17 @@ static int satisfy_dependencies_for(pkg_t * pkg)
 			 pkg->name);
 		tmp = unresolved;
 		while (*unresolved) {
-			opkg_message(ERROR, "\t%s", *unresolved);
+			if (!prev || strcmp(*unresolved, prev))
+				opkg_message(ERROR, "\t%s\n", *unresolved);
+			prev = *unresolved;
+			unresolved++;
+		}
+		unresolved = tmp;
+		while (*unresolved) {
 			free(*unresolved);
 			unresolved++;
 		}
 		free(tmp);
-		opkg_message(ERROR, "\n");
 		if (!conf->force_depends) {
 			opkg_msg(INFO,
 				 "This could mean that your package list is out of date or that the packages\n"
