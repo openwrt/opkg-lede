@@ -306,8 +306,10 @@ int opkg_verify_file(char *text_file, char *sig_file)
 		return 0;
 
 	pid = fork();
-	if (pid < 0)
+	if (pid < 0) {
+		opkg_perror(ERROR, "Failed to fork opkg-key process");
 		return -1;
+	}
 
 	if (!pid) {
 		execl("/usr/sbin/opkg-key", "opkg-key", "verify", sig_file,
