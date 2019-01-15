@@ -357,11 +357,32 @@ pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 		/* now check for supported architecture */
 		{
 			int max_count = 0;
+			int found_apkg = 0;
 
 			/* count packages matching max arch priority and keep track of last one */
 			for (j = 0; j < vec->len; j++) {
 				pkg_t *maybe = vec->pkgs[j];
 				arch_priority = pkg_get_arch_priority(maybe);
+
+				/* check if this package actually provides the requested
+				   abstract package */
+				found_apkg = 0;
+				provided_apkgs = pkg_get_ptr(maybe, PKG_PROVIDES);
+
+				while (provided_apkgs && *provided_apkgs) {
+					if (!strcmp((*provided_apkgs)->name, apkg->name)) {
+						found_apkg = 1;
+						break;
+					}
+					provided_apkgs++;
+				}
+
+				if (found_apkg == 0) {
+					opkg_msg(DEBUG,
+						"%s version=%s skipped since it does not provide %s\n",
+						maybe->name, pkg_get_string(maybe, PKG_VERSION), apkg->name);
+					continue;
+				}
 
 				opkg_msg(DEBUG,
 					 "%s arch=%s arch_priority=%d version=%s.\n",
