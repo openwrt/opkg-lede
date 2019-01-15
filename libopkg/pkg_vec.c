@@ -140,11 +140,23 @@ int pkg_vec_mark_if_matches(pkg_vec_t * vec, const char *pattern)
 	pkg_t **pkgs = vec->pkgs;
 	int npkgs = vec->len;
 	int i;
+	abstract_pkg_t **providers, *provider;
+
 	for (i = 0; i < npkgs; i++) {
 		pkg_t *pkg = pkgs[i];
 		if (fnmatch(pattern, pkg->name, 0) == 0) {
 			pkg->state_flag |= SF_MARKED;
 			matching_count++;
+		}
+		else {
+			providers = pkg_get_ptr(pkg, PKG_PROVIDES);
+			while (providers && *providers) {
+				provider = *providers++;
+				if (fnmatch(pattern, provider->name, 0) == 0) {
+					pkg->state_flag |= SF_MARKED;
+					matching_count++;
+				}
+			}
 		}
 	}
 	return matching_count;
