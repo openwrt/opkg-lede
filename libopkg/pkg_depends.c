@@ -466,20 +466,14 @@ int pkg_replaces(pkg_t * pkg, pkg_t * replacee)
  */
 int pkg_conflicts_abstract(pkg_t * pkg, abstract_pkg_t * conflictee)
 {
-	compound_depend_t *conflicts, *conflict;
+	int i, j;
+	compound_depend_t *conflicts;
 
-	conflicts = pkg_get_ptr(pkg, PKG_CONFLICTS);
-
-	int j;
-	for (conflict = conflicts; conflict->type; conflict++) {
-		int possibility_count = conflict->possibility_count;
-		struct depend **possibilities = conflict->possibilities;
-		for (j = 0; j < possibility_count; j++) {
-			if (possibilities[j]->pkg == conflictee) {
+	for (conflicts = pkg_get_ptr(pkg, PKG_CONFLICTS), i = 0; conflicts && conflicts[i].type; i++)
+		for (j = 0; j < conflicts[i].possibility_count; j++)
+			if (conflicts[i].possibilities[j]->pkg == conflictee)
 				return 1;
-			}
-		}
-	}
+
 	return 0;
 }
 
@@ -489,27 +483,16 @@ int pkg_conflicts_abstract(pkg_t * pkg, abstract_pkg_t * conflictee)
  */
 int pkg_conflicts(pkg_t * pkg, pkg_t * conflictee)
 {
-	int j;
-	int possibility_count;
-	struct depend **possibilities;
-	compound_depend_t *conflicts, *conflict;
-	abstract_pkg_t **conflictee_provides, **provider, *possibility;
+	int i, j;
+	compound_depend_t *conflicts;
+	abstract_pkg_t **provider;
 
-	conflicts = pkg_get_ptr(pkg, PKG_CONFLICTS);
-	conflictee_provides = pkg_get_ptr(conflictee, PKG_PROVIDES);
-
-	for (conflict = conflicts; conflict->type; conflict++) {
-		possibility_count = conflict->possibility_count;
-		possibilities = conflict->possibilities;
-		for (j = 0; j < possibility_count; j++) {
-			possibility = possibilities[j]->pkg;
-			for (provider = conflictee_provides; provider && *provider; provider++) {
-				if (possibility == *provider) {
+	for (conflicts = pkg_get_ptr(pkg, PKG_CONFLICTS), i = 0; conflicts && conflicts[i].type; i++)
+		for (j = 0; j < conflicts[i].possibility_count; j++)
+			for (provider = pkg_get_ptr(conflictee, PKG_PROVIDES); provider && *provider; provider++)
+				if (conflicts[i].possibilities[j]->pkg == *provider)
 					return 1;
-				}
-			}
-		}
-	}
+
 	return 0;
 }
 
