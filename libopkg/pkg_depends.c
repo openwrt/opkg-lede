@@ -668,9 +668,8 @@ void parse_replacelist(pkg_t *pkg, char *list)
 
 	abstract_pkg_vec_insert(ab_pkg->provided_by, ab_pkg);
 
-	for (count = 1, item = strtok_r(list, ", ", &tok);
-	     item;
-	     count++, item = strtok_r(NULL, ", ", &tok), count++) {
+	for (count = 1, item = strtok_r(list, ", ", &tok); item;
+	     count++, item = strtok_r(NULL, ", ", &tok)) {
 		tmp = realloc(replaces, sizeof(abstract_pkg_t *) * (count + 1));
 
 		if (!tmp)

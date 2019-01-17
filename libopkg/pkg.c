@@ -817,11 +817,11 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 	case 'R':
 		if (strcasecmp(field, "Replaces") == 0) {
 			ab_pkg = pkg_get_ptr(pkg, PKG_REPLACES);
-			if (ab_pkg && *ab_pkg) {
+			if (ab_pkg && ab_pkg[0]) {
 				fprintf(fp, "Replaces:");
-				for (i = 0; *ab_pkg; i++, ab_pkg++) {
+				for (i = 0; ab_pkg[i]; i++) {
 					fprintf(fp, "%s %s", i == 0 ? "" : ",",
-						(*ab_pkg)->name);
+						ab_pkg[i]->name);
 				}
 				fprintf(fp, "\n");
 			}
