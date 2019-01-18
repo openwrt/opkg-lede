@@ -59,7 +59,6 @@ enum pkg_state_flag {
 	SF_FILELIST_CHANGED = 128,	/* needs filelist written */
 	SF_USER = 256,
 	SF_NEED_DETAIL = 512,
-	SF_IGNORE = 1024,		/* ignore this package in dependency checks */
 	SF_LAST_STATE_FLAG
 };
 typedef enum pkg_state_flag pkg_state_flag_t;

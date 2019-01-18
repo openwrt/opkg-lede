@@ -37,8 +37,7 @@ static int pkg_installed_and_constraint_satisfied(pkg_t * pkg, void *cdata)
 	depend_t *depend = (depend_t *) cdata;
 	if ((pkg->state_status == SS_INSTALLED
 	     || pkg->state_status == SS_UNPACKED)
-	    && version_constraints_satisfied(depend, pkg)
-	    && !(pkg->state_flag & SF_IGNORE))
+	    && version_constraints_satisfied(depend, pkg))
 		return 1;
 	else
 		return 0;
@@ -47,8 +46,7 @@ static int pkg_installed_and_constraint_satisfied(pkg_t * pkg, void *cdata)
 static int pkg_constraint_satisfied(pkg_t * pkg, void *cdata)
 {
 	depend_t *depend = (depend_t *) cdata;
-	if (version_constraints_satisfied(depend, pkg)
-	    && !(pkg->state_flag & SF_IGNORE))
+	if (version_constraints_satisfied(depend, pkg))
 		return 1;
 	else
 		return 0;

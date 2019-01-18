@@ -40,23 +40,25 @@
 #include "xsystem.h"
 #include "libbb/libbb.h"
 
-static pkg_vec_t * check_dependencies_for(pkg_t *pkg, bool silent)
+static int satisfy_dependencies_for(pkg_t * pkg)
 {
-	char **tmp, **unresolved = NULL, *prev = NULL;
+	int i, err;
 	pkg_vec_t *depends = pkg_vec_alloc();
+	pkg_t *dep;
+	char **tmp, **unresolved = NULL, *prev = NULL;
+	int ndepends;
 
-	pkg_hash_fetch_unsatisfied_dependencies(pkg, depends, &unresolved);
+	ndepends = pkg_hash_fetch_unsatisfied_dependencies(pkg, depends,
+							   &unresolved);
 
 	if (unresolved) {
-		if (silent == false)
-			opkg_msg(ERROR,
-				 "Cannot satisfy the following dependencies for %s:\n",
-				 pkg->name);
+		opkg_msg(ERROR,
+			 "Cannot satisfy the following dependencies for %s:\n",
+			 pkg->name);
 		tmp = unresolved;
 		while (*unresolved) {
 			if (!prev || strcmp(*unresolved, prev))
-				if (silent == false)
-					opkg_message(ERROR, "\t%s\n", *unresolved);
+				opkg_message(ERROR, "\t%s\n", *unresolved);
 			prev = *unresolved;
 			unresolved++;
 		}
@@ -66,30 +68,19 @@ static pkg_vec_t * check_dependencies_for(pkg_t *pkg, bool silent)
 			unresolved++;
 		}
 		free(tmp);
-		pkg_vec_free(depends);
-		return NULL;
-	}
-
-	return depends;
-}
-
-static int satisfy_dependencies_for(pkg_t * pkg)
-{
-	pkg_vec_t *depends;
-	int i, err;
-	pkg_t *dep;
-
-	depends = check_dependencies_for(pkg, false);
-
-	if (depends == NULL) {
 		if (!conf->force_depends) {
 			opkg_msg(INFO,
 				 "This could mean that your package list is out of date or that the packages\n"
 				 "mentioned above do not yet exist (try 'opkg update'). To proceed in spite\n"
 				 "of this problem try again with the '-force-depends' option.\n");
+			pkg_vec_free(depends);
+			return -1;
 		}
+	}
 
-		return -1;
+	if (ndepends <= 0) {
+		pkg_vec_free(depends);
+		return 0;
 	}
 
 	/* Mark packages as to-be-installed */
@@ -151,67 +142,6 @@ static int check_conflicts_for(pkg_t * pkg)
 		return -1;
 	}
 	return 0;
-}
-
-static int check_reverse_depends_for(pkg_t *pkg, pkg_t *old_pkg)
-{
-	int err = 0;
-	int i, n_dependents;
-	abstract_pkg_t **dependents, *dependent;
-	pkg_vec_t *depends;
-	pkg_t *updated;
-
-	opkg_msg(DEBUG, "Checking reverse depends for %s\n", old_pkg->name);
-
-	n_dependents = pkg_has_installed_dependents(old_pkg, &dependents);
-
-	/* pretend that old package does not exist */
-	old_pkg->state_flag |= SF_IGNORE;
-
-	if (n_dependents == 0)
-		goto out;
-
-	while ((dependent = *dependents++) != NULL) {
-		if (dependent->state_status != SS_INSTALLED)
-			continue;
-
-		if (dependent->pkgs == NULL)
-			continue;
-
-		for (i = 0; i < dependent->pkgs->len; i++) {
-			if (dependent->pkgs->pkgs[i]->state_status != SS_INSTALLED)
-				continue;
-
-			depends = check_dependencies_for(dependent->pkgs->pkgs[i], true);
-			if (depends == NULL) {
-#if 0
-				updated = pkg_hash_fetch_best_installation_candidate_by_name(dependent->pkgs->pkgs[i]->name);
-				depends = updated ? check_dependencies_for(updated, false) : NULL;
-				if (depends == NULL) {
-					opkg_msg(ERROR, "Package %s reverse dependency check failed\n",
-						 pkg->name);
-					err = -1;
-					goto out;
-				}
-				else {
-					err = opkg_install_pkg(updated, 1);
-					if (err)
-						goto out;
-				}
-#else
-				opkg_msg(ERROR, "Package %s reverse dependency check failed\n", pkg->name);
-				err = -1;
-				goto out;
-#endif
-			}
-
-			pkg_vec_free(depends);
-		}
-	}
-
-out:
-	old_pkg->state_flag &= ~SF_IGNORE;
-	return err;
 }
 
 static int update_file_ownership(pkg_t * new_pkg, pkg_t * old_pkg)
@@ -1361,10 +1291,6 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 	pkg->state_want = SW_INSTALL;
 	if (old_pkg) {
 		old_pkg->state_want = SW_DEINSTALL;	/* needed for check_data_file_clashes of dependencies */
-
-		err = check_reverse_depends_for(pkg, old_pkg);
-		if (err)
-			return -1;
 	}
 
 	err = check_conflicts_for(pkg);
