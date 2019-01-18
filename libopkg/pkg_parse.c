@@ -302,7 +302,7 @@ int pkg_parse_line(void *ptr, char *line, uint mask)
 	case 'R':
 		if ((mask & PFM_RECOMMENDS) && is_field("Recommends", line))
 			parse_deplist(pkg, RECOMMEND, line + strlen("Recommends") + 1);
-		else if ((mask & PFM_REPLACES) && (is_field("Replaces", line) || is_field("Replace2", line)))
+		else if ((mask & PFM_REPLACES) && is_field("Replaces", line))
 			parse_replacelist(pkg, line + strlen("Replaces") + 1);
 		break;
 
