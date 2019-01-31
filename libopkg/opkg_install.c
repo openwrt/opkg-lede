@@ -1255,6 +1255,7 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 	char *file_sha256, *pkg_sha256;
 	sigset_t newset, oldset;
 	const char *local_filename;
+	struct stat pkg_stat;
 	time_t now;
 
 	if (from_upgrade)
@@ -1365,6 +1366,29 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 		free(sig_file_name);
 	}
 #endif
+
+	/* Check file size */
+	err = lstat(local_filename, &pkg_stat);
+
+	if (err) {
+		opkg_msg(ERROR, "Failed to stat %s: %s\n",
+		         local_filename, strerror(errno));
+		return -1;
+	}
+
+	if (pkg_stat.st_size != pkg_get_int(pkg, PKG_SIZE)) {
+		if (!conf->force_checksum) {
+			opkg_msg(ERROR,
+			         "Package size mismatch: %s is %lld bytes, expecting %lld bytes\n",
+			         pkg->name, (long long int)pkg_stat.st_size,
+			         (long long int)pkg_get_int(pkg, PKG_SIZE));
+			return -1;
+		} else {
+			opkg_msg(NOTICE,
+			         "Ignored %s size mismatch.\n",
+			         pkg->name);
+		}
+	}
 
 	/* Check for md5 values */
 	pkg_md5 = pkg_get_md5(pkg);
