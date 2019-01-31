@@ -1255,6 +1255,7 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 	char *file_sha256, *pkg_sha256;
 	sigset_t newset, oldset;
 	const char *local_filename;
+	long long int pkg_expected_size;
 	struct stat pkg_stat;
 	time_t now;
 
@@ -1376,12 +1377,13 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 		return -1;
 	}
 
-	if (pkg_stat.st_size != pkg_get_int(pkg, PKG_SIZE)) {
+	pkg_expected_size = pkg_get_int(pkg, PKG_SIZE);
+
+	if (pkg_expected_size > 0 && pkg_stat.st_size != pkg_expected_size) {
 		if (!conf->force_checksum) {
 			opkg_msg(ERROR,
 			         "Package size mismatch: %s is %lld bytes, expecting %lld bytes\n",
-			         pkg->name, (long long int)pkg_stat.st_size,
-			         (long long int)pkg_get_int(pkg, PKG_SIZE));
+			         pkg->name, (long long int)pkg_stat.st_size, pkg_expected_size);
 			return -1;
 		} else {
 			opkg_msg(NOTICE,
