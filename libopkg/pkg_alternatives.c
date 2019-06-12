@@ -27,6 +27,42 @@
 #include "pkg_alternatives.h"
 #include "sprintf_alloc.h"
 
+struct alternative_provider {
+	char *name;
+	char *altpath;
+};
+
+static const struct alternative_provider const providers[] = {
+	{
+		.name = "busybox",
+		.altpath = "/bin/busybox",
+	},
+};
+
+static const char *pkg_alternatives_check_providers(const char *path)
+{
+	pkg_t *pkg;
+	str_list_t *files;
+	str_list_elt_t *iter;
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(providers); i++) {
+		pkg = pkg_hash_fetch_installed_by_name(providers[i].name);
+		if (!pkg) {
+			continue;
+		}
+		files = pkg_get_installed_files(pkg);
+		for (iter = str_list_first(files); iter; iter = str_list_next(files, iter)) {
+			if (!strcmp(path, (char *)(iter->data))) {
+				pkg_free_installed_files(pkg);
+				return providers[i].altpath;
+			}
+		}
+		pkg_free_installed_files(pkg);
+	}
+	return NULL;
+}
+
 static int pkg_alternatives_update_path(pkg_t *pkg, const pkg_vec_t *installed, const char *path)
 {
 	struct pkg_alternatives *pkg_alts;
@@ -35,6 +71,7 @@ static int pkg_alternatives_update_path(pkg_t *pkg, const pkg_vec_t *installed, 
 	int i, j;
 	int r;
 	char *path_in_dest;
+	const char *target_path = NULL;
 
 	for (i = 0; i < installed->len; i++) {
 		pkg_t *pkg = installed->pkgs[i];
@@ -60,6 +97,12 @@ static int pkg_alternatives_update_path(pkg_t *pkg, const pkg_vec_t *installed, 
 		return -1;
 
 	if (the_alt) {
+		target_path = the_alt->altpath;
+	} else {
+		target_path = pkg_alternatives_check_providers(path);
+	}
+
+	if (target_path) {
 		struct stat sb;
 
 		r = lstat(path_in_dest, &sb);
@@ -72,7 +115,7 @@ static int pkg_alternatives_update_path(pkg_t *pkg, const pkg_vec_t *installed, 
 				goto out;
 			}
 			realpath = xreadlink(path_in_dest);
-			if (realpath && strcmp(realpath, the_alt->altpath))
+			if (realpath && strcmp(realpath, target_path))
 				unlink(path_in_dest);
 			free(realpath);
 		} else if (errno != ENOENT) {
@@ -87,7 +130,7 @@ static int pkg_alternatives_update_path(pkg_t *pkg, const pkg_vec_t *installed, 
 			if (r) {
 				goto out;
 			}
-			r = symlink(the_alt->altpath, path_in_dest);
+			r = symlink(target_path, path_in_dest);
 			if (r && errno == EEXIST) {
 				/*
 				 * the strcmp & unlink check above will make sure that if EEXIST
@@ -96,7 +139,7 @@ static int pkg_alternatives_update_path(pkg_t *pkg, const pkg_vec_t *installed, 
 				r = 0;
 			}
 			if (r) {
-				opkg_perror(ERROR, "failed symlinking %s -> %s", path_in_dest, the_alt->altpath);
+				opkg_perror(ERROR, "failed symlinking %s -> %s", path_in_dest, target_path);
 			}
 		}
 	} else {
