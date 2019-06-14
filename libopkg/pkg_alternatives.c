@@ -32,7 +32,7 @@ struct alternative_provider {
 	char *altpath;
 };
 
-static const struct alternative_provider const providers[] = {
+static const struct alternative_provider providers[] = {
 	{
 		.name = "busybox",
 		.altpath = "/bin/busybox",
