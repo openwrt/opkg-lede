@@ -244,8 +244,7 @@ static int unpack_pkg_control_files(pkg_t * pkg)
 
 	tmp_unpack_dir = mkdtemp(tmp_unpack_dir);
 	if (tmp_unpack_dir == NULL) {
-		opkg_perror(ERROR, "Failed to create temporary directory '%s'",
-			    tmp_unpack_dir);
+		opkg_perror(ERROR, "Failed to create temporary directory");
 		return -1;
 	}
 
