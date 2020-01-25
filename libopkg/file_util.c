@@ -235,7 +235,7 @@ char *checksum_hex2bin(const char *src, size_t *len)
 {
 	size_t slen;
 	unsigned char *p;
-	const unsigned char *s = (unsigned char *)src;
+	const unsigned char *s;
 	static unsigned char buf[32];
 
 	if (!src) {
@@ -253,7 +253,7 @@ char *checksum_hex2bin(const char *src, size_t *len)
 		return NULL;
 	}
 
-	for (p = buf, *len = 0;
+	for (s = (unsigned char *)src, p = buf, *len = 0;
 	     slen > 0 && isxdigit(s[0]) && isxdigit(s[1]);
 	     slen--, s += 2, (*len)++)
 		*p++ = hex2bin(s[0]) * 16 + hex2bin(s[1]);
