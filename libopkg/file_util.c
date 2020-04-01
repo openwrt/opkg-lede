@@ -230,32 +230,30 @@ char *checksum_bin2hex(const char *src, size_t len)
 
 char *checksum_hex2bin(const char *src, size_t *len)
 {
-	size_t slen;
-	unsigned char *p;
-	const unsigned char *s;
 	static unsigned char buf[32];
+	size_t n = 0;
 
-	if (!src) {
-		*len = 0;
+	*len = 0;
+
+	if (!src)
 		return NULL;
-	}
 
 	while (isspace(*src))
 		src++;
 
-	slen = strlen(src);
-
-	if (slen > 64) {
-		*len = 0;
+	if (strlen(src) > sizeof(buf) * 2)
 		return NULL;
+
+	while (*src) {
+		if (n >= sizeof(buf) || !isxdigit(src[0]) || !isxdigit(src[1]))
+			return NULL;
+
+		buf[n++] = hex2bin(src[0]) * 16 + hex2bin(src[1]);
+		src += 2;
 	}
 
-	for (s = (unsigned char *)src, p = buf, *len = 0;
-	     slen > 0 && isxdigit(s[0]) && isxdigit(s[1]);
-	     slen--, s += 2, (*len)++)
-		*p++ = hex2bin(s[0]) * 16 + hex2bin(s[1]);
-
-	return (char *)buf;
+	*len = n;
+	return n ? (char *)buf : NULL;
 }
 
 int rm_r(const char *path)
