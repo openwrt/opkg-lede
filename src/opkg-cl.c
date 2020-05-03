@@ -413,7 +413,8 @@ int main(int argc, char *argv[])
 	    !strcmp(cmd_name, "list-installed") ||
 	    !strcmp(cmd_name, "list_changed_conffiles") ||
 	    !strcmp(cmd_name, "list-changed-conffiles") ||
-	    !strcmp(cmd_name, "status"))
+	    !strcmp(cmd_name, "status") ||
+	    !strcmp(cmd_name, "update"))
 		noreadfeedsfile = 1;
 
 	cmd = opkg_cmd_find(cmd_name);
