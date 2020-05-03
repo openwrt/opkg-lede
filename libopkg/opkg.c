@@ -87,10 +87,10 @@ int opkg_new()
 	if (opkg_conf_load())
 		goto err0;
 
-	if (pkg_hash_load_feeds(0))
+	if (pkg_hash_load_feeds(0, NULL, NULL))
 		goto err1;
 
-	if (pkg_hash_load_status_files())
+	if (pkg_hash_load_status_files(NULL, NULL))
 		goto err1;
 
 	return 0;

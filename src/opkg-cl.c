@@ -431,11 +431,11 @@ int main(int argc, char *argv[])
 
 	if (!nocheckfordirorfile) {
 		if (!noreadfeedsfile) {
-			if (pkg_hash_load_feeds(SF_NEED_DETAIL))
+			if (pkg_hash_load_feeds(SF_NEED_DETAIL, NULL, NULL))
 				goto err1;
 		}
 
-		if (pkg_hash_load_status_files())
+		if (pkg_hash_load_status_files(NULL, NULL))
 			goto err1;
 	}
 

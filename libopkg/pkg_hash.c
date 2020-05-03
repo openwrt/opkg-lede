@@ -79,7 +79,7 @@ int dist_hash_add_from_file(const char *lists_dir, pkg_src_t * dist)
 		sprintf_alloc(&list_file, "%s/%s", lists_dir, subname);
 
 		if (file_exists(list_file)) {
-			if (pkg_hash_add_from_file(list_file, dist, NULL, 0, 0)) {
+			if (pkg_hash_add_from_file(list_file, dist, NULL, 0, 0, NULL, NULL)) {
 				free(list_file);
 				return -1;
 			}
@@ -95,7 +95,8 @@ int dist_hash_add_from_file(const char *lists_dir, pkg_src_t * dist)
 
 int
 pkg_hash_add_from_file(const char *file_name,
-		       pkg_src_t * src, pkg_dest_t * dest, int is_status_file, int state_flags)
+		       pkg_src_t * src, pkg_dest_t * dest, int is_status_file, int state_flags,
+		       void (*cb)(pkg_t *, void *), void *priv)
 {
 	pkg_t *pkg;
 	FILE *fp;
@@ -158,7 +159,10 @@ pkg_hash_add_from_file(const char *file_name,
 			continue;
 		}
 
-		hash_insert_pkg(pkg, is_status_file);
+		if (cb)
+			cb(pkg, priv);
+		else
+			hash_insert_pkg(pkg, is_status_file);
 
 	} while (!feof(fp));
 
@@ -174,7 +178,7 @@ pkg_hash_add_from_file(const char *file_name,
 /*
  * Load in feed files from the cached "src" and/or "src/gz" locations.
  */
-int pkg_hash_load_feeds(int state_flags)
+int pkg_hash_load_feeds(int state_flags, void (*cb)(pkg_t *, void *), void *priv)
 {
 	pkg_src_list_elt_t *iter;
 	pkg_src_t *src;
@@ -193,7 +197,7 @@ int pkg_hash_load_feeds(int state_flags)
 		sprintf_alloc(&list_file, "%s/%s", lists_dir, src->name);
 
 		if (file_exists(list_file)) {
-			if (pkg_hash_add_from_file(list_file, src, NULL, 0, state_flags)) {
+			if (pkg_hash_add_from_file(list_file, src, NULL, 0, state_flags, cb, priv)) {
 				free(list_file);
 				return -1;
 			}
@@ -207,7 +211,7 @@ int pkg_hash_load_feeds(int state_flags)
 /*
  * Load in status files from the configured "dest"s.
  */
-int pkg_hash_load_status_files(void)
+int pkg_hash_load_status_files(void (*cb)(pkg_t *, void *), void *priv)
 {
 	pkg_dest_list_elt_t *iter;
 	pkg_dest_t *dest;
@@ -221,7 +225,7 @@ int pkg_hash_load_status_files(void)
 
 		if (file_exists(dest->status_file_name)) {
 			if (pkg_hash_add_from_file
-			    (dest->status_file_name, NULL, dest, 1, SF_NEED_DETAIL))
+			    (dest->status_file_name, NULL, dest, 1, SF_NEED_DETAIL, cb, priv))
 				return -1;
 		}
 	}
@@ -255,7 +259,7 @@ int pkg_hash_load_package_details(void)
 	int n_need_detail;
 
 	while (1) {
-		pkg_hash_load_feeds(0);
+		pkg_hash_load_feeds(0, NULL, NULL);
 
 		n_need_detail = 0;
 		hash_table_foreach(&conf->pkg_hash, pkg_hash_load_package_details_helper, &n_need_detail);

@@ -35,8 +35,8 @@ int main(int argc, char *argv[])
 	}
 	pkg_hash_init("test", hash, 1024);
 
-	pkg_hash_add_from_file(&conf, argv[1], NULL, NULL, 0);
-	pkg_hash_add_from_file(&conf, argv[2], NULL, NULL, 0);
+	pkg_hash_add_from_file(&conf, argv[1], NULL, NULL, 0, NULL, NULL);
+	pkg_hash_add_from_file(&conf, argv[2], NULL, NULL, 0, NULL, NULL);
 
 	if (argc < 4) {
 		pkg_print_info(pkg_hash_fetch_by_name_version

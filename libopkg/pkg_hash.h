@@ -30,9 +30,10 @@ void pkg_hash_fetch_available(pkg_vec_t * available);
 
 int dist_hash_add_from_file(const char *file_name, pkg_src_t * dist);
 int pkg_hash_add_from_file(const char *file_name, pkg_src_t * src,
-			   pkg_dest_t * dest, int is_status_file, int state_flags);
-int pkg_hash_load_feeds(int state_flags);
-int pkg_hash_load_status_files(void);
+			   pkg_dest_t * dest, int is_status_file, int state_flags,
+			   void (*cb)(pkg_t *, void *), void *priv);
+int pkg_hash_load_feeds(int state_flags, void (*cb)(pkg_t *, void *), void *priv);
+int pkg_hash_load_status_files(void (*cb)(pkg_t *, void *), void *priv);
 int pkg_hash_load_package_details(void);
 
 void hash_insert_pkg(pkg_t * pkg, int set_status);

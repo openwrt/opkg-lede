@@ -458,7 +458,7 @@ static int opkg_install_cmd(int argc, char **argv)
 	}
 
 	pkg_hash_load_package_details();
-	pkg_hash_load_status_files();
+	pkg_hash_load_status_files(NULL, NULL);
 
 	if (conf->force_reinstall) {
 		int saved_force_depends = conf->force_depends;
