@@ -569,31 +569,108 @@ static int opkg_download_cmd(int argc, char **argv)
 	return err;
 }
 
+struct opkg_list_find_cmd_item {
+	int size;
+	char *name;
+	char *version;
+	char *description;
+};
+
+struct opkg_list_find_cmd_args {
+	int use_desc;
+	int set_status;
+	char *pkg_name;
+	struct opkg_list_find_cmd_item **items;
+	size_t n_items;
+};
+
+static void opkg_list_find_cmd_cb(pkg_t *pkg, void *priv)
+{
+	struct opkg_list_find_cmd_args *args = priv;
+	char *description = pkg_get_string(pkg, PKG_DESCRIPTION);
+	char *version = pkg_version_str_alloc(pkg);
+	struct opkg_list_find_cmd_item *item;
+	char *nameptr, *versionptr, *descriptionptr;
+	int i, found = 0;
+
+	/* if we have package name or pattern and pkg does not match, then skip it */
+	if (args->pkg_name && fnmatch(args->pkg_name, pkg->name, conf->nocase) &&
+	    (!args->use_desc || !description
+	     || fnmatch(args->pkg_name, description, conf->nocase)))
+		goto out;
+
+	if (args->set_status) {
+		for (i = 0; i < args->n_items; i++) {
+			if (!strcmp(args->items[i]->name, pkg->name)) {
+				found = 1;
+				break;
+			}
+		}
+	}
+
+	if (!found) {
+		item = calloc_a(sizeof(*item),
+		                &nameptr, strlen(pkg->name) + 1,
+		                &versionptr, strlen(version) + 1,
+		                &descriptionptr, description ? strlen(description) + 1 : 0);
+
+		item->name = strcpy(nameptr, pkg->name);
+		item->size = pkg_get_int(pkg, PKG_SIZE);
+		item->version = strcpy(versionptr, version);
+		item->description = description ? strcpy(descriptionptr, description) : NULL;
+
+		args->items = xrealloc(args->items, sizeof(item) * (args->n_items + 1));
+		args->items[args->n_items++] = item;
+	}
+
+out:
+	pkg_deinit(pkg);
+	free(pkg);
+	free(version);
+}
+
+static int opkg_list_find_cmd_sort(const void *a, const void *b)
+{
+	const struct opkg_list_find_cmd_item *pkg_a = *(const struct opkg_list_find_cmd_item **)a;
+	const struct opkg_list_find_cmd_item *pkg_b = *(const struct opkg_list_find_cmd_item **)b;
+	return strcmp(pkg_a->name, pkg_b->name);
+}
+
 static int opkg_list_find_cmd(int argc, char **argv, int use_desc)
 {
 	int i;
-	pkg_vec_t *available;
-	pkg_t *pkg;
-	char *pkg_name = NULL;
-	char *description;
+	struct opkg_list_find_cmd_args args = {
+		.use_desc = use_desc,
+		.pkg_name = (argc > 0) ? argv[0] : NULL
+	};
 
-	if (argc > 0) {
-		pkg_name = argv[0];
+	args.set_status = 0;
+	pkg_hash_load_feeds(SF_NEED_DETAIL, opkg_list_find_cmd_cb, &args);
+
+	args.set_status = 1;
+	pkg_hash_load_status_files(opkg_list_find_cmd_cb, &args);
+
+	if (args.n_items > 1)
+		qsort(args.items, args.n_items, sizeof(args.items[0]),
+		      opkg_list_find_cmd_sort);
+
+	for (i = 0; i < args.n_items; i++) {
+		printf("%s - %s",
+		       args.items[i]->name,
+		       args.items[i]->version);
+
+		if (conf->size)
+			printf(" - %lu", (unsigned long) args.items[i]->size);
+
+		if (args.items[i]->description)
+			printf(" - %s", args.items[i]->description);
+
+		printf("\n");
+
+		free(args.items[i]);
 	}
-	available = pkg_vec_alloc();
-	pkg_hash_fetch_available(available);
-	pkg_vec_sort(available, pkg_compare_names);
-	for (i = 0; i < available->len; i++) {
-		pkg = available->pkgs[i];
-		description = use_desc ? pkg_get_string(pkg, PKG_DESCRIPTION) : NULL;
-		/* if we have package name or pattern and pkg does not match, then skip it */
-		if (pkg_name && fnmatch(pkg_name, pkg->name, conf->nocase) &&
-		    (!use_desc || !description
-		     || fnmatch(pkg_name, description, conf->nocase)))
-			continue;
-		print_pkg(pkg);
-	}
-	pkg_vec_free(available);
+
+	free(args.items);
 
 	return 0;
 }

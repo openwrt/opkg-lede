@@ -409,6 +409,7 @@ int main(int argc, char *argv[])
 	    !strcmp(cmd_name, "remove") ||
 	    !strcmp(cmd_name, "files") ||
 	    !strcmp(cmd_name, "search") ||
+	    !strcmp(cmd_name, "list") ||
 	    !strcmp(cmd_name, "list_installed") ||
 	    !strcmp(cmd_name, "list-installed") ||
 	    !strcmp(cmd_name, "list_changed_conffiles") ||
