@@ -20,6 +20,7 @@
 
 #include "pkg.h"
 
+int opkg_verify_integrity(pkg_t *pkg, const char *filename);
 int opkg_download(const char *src, const char *dest_file_name,
                   const short hide_error);
 int opkg_download_pkg(pkg_t * pkg, const char *dir);
