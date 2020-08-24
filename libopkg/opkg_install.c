@@ -1363,9 +1363,18 @@ int opkg_install_pkg(pkg_t * pkg, int from_upgrade)
 	}
 #endif
 
+	/* Check integrity (size, checksums) */
 	err = opkg_verify_integrity(pkg, local_filename);
-	if (err)
+	if (err && !conf->force_checksum) {
+		opkg_msg(ERROR, "Checksum or size mismatch for package %s. "
+			 "Either the opkg or the package index are corrupt. "
+			 "Try 'opkg update'.\n", pkg->name);
 		return -1;
+	}
+	if (err && conf->force_checksum) {
+		opkg_msg(NOTICE, "Ignored %s checksum or size mismatch.\n",
+			pkg->name);
+	}
 
 	if (conf->download_only) {
 		if (conf->nodeps == 0) {
