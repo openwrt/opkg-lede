@@ -35,6 +35,84 @@ static int str_starts_with(const char *str, const char *prefix)
 	return (strncmp(str, prefix, strlen(prefix)) == 0);
 }
 
+int opkg_verify_integrity(pkg_t *pkg, const char *filename)
+{
+	int err = 0;
+	char *file_md5, *pkg_md5;
+	char *file_sha256, *pkg_sha256;
+	struct stat pkg_stat;
+	long long int pkg_expected_size;
+
+	/* Check file size */
+	err = lstat(filename, &pkg_stat);
+
+	if (err) {
+		opkg_msg(ERROR, "Failed to stat %s: %s\n",
+		         filename, strerror(errno));
+		return err;
+	}
+
+	pkg_expected_size = pkg_get_int(pkg, PKG_SIZE);
+
+	if (pkg_expected_size > 0 && pkg_stat.st_size != pkg_expected_size) {
+		if (!conf->force_checksum) {
+			opkg_msg(ERROR,
+			         "Package size mismatch: %s is %lld bytes, expecting %lld bytes\n",
+			         pkg->name, (long long int)pkg_stat.st_size, pkg_expected_size);
+			return -1;
+		} else {
+			opkg_msg(NOTICE,
+			         "Ignored %s size mismatch.\n",
+			         pkg->name);
+		}
+	}
+
+	/* Check for md5 values */
+	pkg_md5 = pkg_get_md5(pkg);
+	if (pkg_md5) {
+		file_md5 = file_md5sum_alloc(filename);
+		if (file_md5 && strcmp(file_md5, pkg_md5)) {
+			if (!conf->force_checksum) {
+				opkg_msg(ERROR, "Package %s md5sum mismatch. "
+					 "Either the opkg or the package index are corrupt. "
+					 "Try 'opkg update'.\n", pkg->name);
+				free(file_md5);
+				return -1;
+			} else {
+				opkg_msg(NOTICE,
+					 "Ignored %s md5sum mismatch.\n",
+					 pkg->name);
+			}
+		}
+		if (file_md5)
+			free(file_md5);
+	}
+
+	/* Check for sha256 value */
+	pkg_sha256 = pkg_get_sha256(pkg);
+	if (pkg_sha256) {
+		file_sha256 = file_sha256sum_alloc(filename);
+		if (file_sha256 && strcmp(file_sha256, pkg_sha256)) {
+			if (!conf->force_checksum) {
+				opkg_msg(ERROR,
+					 "Package %s sha256sum mismatch. "
+					 "Either the opkg or the package index are corrupt. "
+					 "Try 'opkg update'.\n", pkg->name);
+				free(file_sha256);
+				return -1;
+			} else {
+				opkg_msg(NOTICE,
+					 "Ignored %s sha256sum mismatch.\n",
+					 pkg->name);
+			}
+		}
+		if (file_sha256)
+			free(file_sha256);
+	}
+
+	return err;
+}
+
 int
 opkg_download(const char *src, const char *dest_file_name,
               const short hide_error)
