@@ -206,6 +206,17 @@ opkg_download(const char *src, const char *dest_file_name,
 	return err;
 }
 
+static char* get_cache_filename(const char *dest_file_name)
+{
+	char *cache_name;
+	char *filename = strrchr(dest_file_name, '/');
+	if (filename)
+		cache_name = xstrdup(filename + 1);	// strip leading '/'
+	else
+		cache_name = xstrdup(dest_file_name);
+	return cache_name;
+}
+
 static int
 opkg_download_cache(const char *src, const char *dest_file_name)
 {
@@ -223,11 +234,7 @@ opkg_download_cache(const char *src, const char *dest_file_name)
 		goto out1;
 	}
 
-	char *filename = strrchr(dest_file_name, '/');
-	if (filename)
-		cache_name = xstrdup(filename + 1);	// strip leading '/'
-	else
-		cache_name = xstrdup(dest_file_name);
+	cache_name = get_cache_filename(dest_file_name);
 	sprintf_alloc(&cache_location, "%s/%s", conf->cache, cache_name);
 	if (file_exists(cache_location))
 		opkg_msg(NOTICE, "Copying %s.\n", cache_location);
