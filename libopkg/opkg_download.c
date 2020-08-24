@@ -263,6 +263,8 @@ int opkg_download_pkg(pkg_t * pkg, const char *dir)
 	char *stripped_filename;
 	char *urlencoded_path;
 	char *filename;
+	char *cache_name;
+	char *cache_location;
 
 	if (pkg->src == NULL) {
 		opkg_msg(ERROR,
@@ -295,6 +297,23 @@ int opkg_download_pkg(pkg_t * pkg, const char *dir)
 
 	sprintf_alloc(&local_filename, "%s/%s", dir, stripped_filename);
 	pkg_set_string(pkg, PKG_LOCAL_FILENAME, local_filename);
+
+	/* Invalidate/remove cached package if it has an incorrect checksum. */
+	if (conf->cache) {
+		cache_name = get_cache_filename(local_filename);
+		sprintf_alloc(&cache_location, "%s/%s", conf->cache, cache_name);
+		free(cache_name);
+		if (file_exists(cache_location)) {
+			err = opkg_verify_integrity(pkg, cache_location);
+			if (err) {
+				opkg_msg(NOTICE,
+					 "Removing %s from cache because it has incorrect checksum.\n",
+					 pkg->name);
+				unlink(cache_location);
+			}
+		}
+		free(cache_location);
+	}
 
 	err = opkg_download_cache(url, local_filename);
 	free(url);
