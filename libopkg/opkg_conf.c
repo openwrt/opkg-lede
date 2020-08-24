@@ -72,6 +72,7 @@ opkg_option_t options[] = {
 	{"size", OPKG_OPT_TYPE_BOOL, &_conf.size},
 	{"tmp_dir", OPKG_OPT_TYPE_STRING, &_conf.tmp_dir},
 	{"verbosity", OPKG_OPT_TYPE_INT, &_conf.verbosity},
+	{"verify_program", OPKG_OPT_TYPE_STRING, &_conf.verify_program},
 	{NULL, 0, NULL}
 };
 
@@ -571,6 +572,9 @@ int opkg_conf_load(void)
 
 	if (conf->lists_dir == NULL)
 		conf->lists_dir = xstrdup(OPKG_CONF_LISTS_DIR);
+
+	if (conf->verify_program == NULL)
+		conf->verify_program = xstrdup(OPKG_CONF_DEFAULT_VERIFY_PROGRAM);
 
 	if (conf->offline_root) {
 		sprintf_alloc(&tmp, "%s/%s", conf->offline_root,

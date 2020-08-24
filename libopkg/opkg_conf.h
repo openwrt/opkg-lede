@@ -35,6 +35,8 @@ extern opkg_conf_t *conf;
 
 #define OPKG_CONF_DEFAULT_CONF_FILE_DIR OPKGETCDIR"/opkg"
 
+#define OPKG_CONF_DEFAULT_VERIFY_PROGRAM "/usr/sbin/opkg-key"
+
 /* In case the config file defines no dest */
 #define OPKG_CONF_DEFAULT_DEST_NAME "root"
 #define OPKG_CONF_DEFAULT_DEST_ROOT_DIR "/"
@@ -85,6 +87,7 @@ struct opkg_conf {
 	char *overlay_root;
 	int query_all;
 	int verbosity;
+	char *verify_program;
 	int noaction;
 	int size;
 	int download_only;

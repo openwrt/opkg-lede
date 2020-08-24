@@ -298,7 +298,7 @@ int opkg_prepare_url_for_install(const char *url, char **namep)
 int opkg_verify_file(char *text_file, char *sig_file)
 {
 #if defined HAVE_USIGN
-	const char *argv[] = { "/usr/sbin/opkg-key", "verify", sig_file,
+	const char *argv[] = { conf->verify_program, "verify", sig_file,
 	                       text_file, NULL };
 
 	return xsystem(argv) ? -1 : 0;

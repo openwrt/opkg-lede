@@ -53,6 +53,7 @@ enum {
 	ARGS_OPT_CACHE,
 	ARGS_OPT_FORCE_SIGNATURE,
 	ARGS_OPT_NO_CHECK_CERTIFICATE,
+	ARGS_OPT_VERIFY_PROGRAM,
 	ARGS_OPT_SIZE,
 };
 
@@ -109,6 +110,8 @@ static struct option long_options[] = {
 	{"lists-dir", 1, 0, 'l'},
 	{"lists_dir", 1, 0, 'l'},
 	{"verbosity", 2, 0, 'V'},
+	{"verify-program", 1, 0, ARGS_OPT_VERIFY_PROGRAM},
+	{"verify_program", 1, 0, ARGS_OPT_VERIFY_PROGRAM},
 	{"version", 0, 0, 'v'},
 	{0, 0, 0, 0}
 };
@@ -232,6 +235,9 @@ static int args_parse(int argc, char *argv[])
 		case ARGS_OPT_NO_CHECK_CERTIFICATE:
 			conf->no_check_certificate = 1;
 			break;
+		case ARGS_OPT_VERIFY_PROGRAM:
+			conf->verify_program = xstrdup(optarg);
+			break;
 		case ':':
 			parse_err = -1;
 			break;
@@ -322,6 +328,8 @@ static void usage()
 	printf("				directory name in a pinch).\n");
 	printf("\t-o <dir>		Use <dir> as the root directory for\n");
 	printf("\t--offline-root <dir>	offline installation of packages.\n");
+	printf
+	    ("\t--verify-program <path>	Use the given program to verify usign signatures\n");
 	printf
 	    ("\t--add-arch <arch>:<prio>	Register architecture with given priority\n");
 	printf
