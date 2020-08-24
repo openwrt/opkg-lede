@@ -131,8 +131,7 @@ opkg_download(const char *src, const char *dest_file_name,
 static int
 opkg_download_cache(const char *src, const char *dest_file_name)
 {
-	char *cache_name = xstrdup(src);
-	char *cache_location, *p;
+	char *cache_name, *cache_location;
 	int err = 0;
 
 	if (!conf->cache || str_starts_with(src, "file:")) {
@@ -146,32 +145,19 @@ opkg_download_cache(const char *src, const char *dest_file_name)
 		goto out1;
 	}
 
-	for (p = cache_name; *p; p++)
-		if (*p == '/')
-			*p = ',';	/* looks nicer than | or # */
-
+	char *filename = strrchr(dest_file_name, '/');
+	if (filename)
+		cache_name = xstrdup(filename + 1);	// strip leading '/'
+	else
+		cache_name = xstrdup(dest_file_name);
 	sprintf_alloc(&cache_location, "%s/%s", conf->cache, cache_name);
 	if (file_exists(cache_location))
 		opkg_msg(NOTICE, "Copying %s.\n", cache_location);
 	else {
-		/* cache file with funky name not found, try simple name */
-		free(cache_name);
-		char *filename = strrchr(dest_file_name, '/');
-		if (filename)
-			cache_name = xstrdup(filename + 1);	// strip leading '/'
-		else
-			cache_name = xstrdup(dest_file_name);
-		free(cache_location);
-		sprintf_alloc(&cache_location, "%s/%s", conf->cache,
-			      cache_name);
-		if (file_exists(cache_location))
-			opkg_msg(NOTICE, "Copying %s.\n", cache_location);
-		else {
-			err = opkg_download(src, cache_location, 0);
-			if (err) {
-				(void)unlink(cache_location);
-				goto out2;
-			}
+		err = opkg_download(src, cache_location, 0);
+		if (err) {
+			(void)unlink(cache_location);
+			goto out2;
 		}
 	}
 
@@ -179,8 +165,8 @@ opkg_download_cache(const char *src, const char *dest_file_name)
 
 out2:
 	free(cache_location);
-out1:
 	free(cache_name);
+out1:
 	return err;
 }
 
