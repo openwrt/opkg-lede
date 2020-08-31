@@ -106,7 +106,7 @@ void *pkg_set_raw(pkg_t *pkg, int id, const void *val, size_t len)
 	blob_for_each_attr(cur, pkg->blob.head, rem) {
 		if (blob_id(cur) == id) {
 			if (blob_len(cur) < len) {
-				fprintf(stderr, "ERROR: truncating field %d <%p> to %d byte",
+				fprintf(stderr, "ERROR: truncating field %d <%p> to %zu byte",
 				        id, val, blob_len(cur));
 			}
 			memcpy(blob_data(cur), val, blob_len(cur));
