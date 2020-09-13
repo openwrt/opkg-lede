@@ -153,7 +153,7 @@ char *file_md5sum_alloc(const char *file_name)
 
 	len = md5sum(file_name, md5sum_bin);
 
-	if (len) {
+	if (len < 0) {
 		opkg_msg(ERROR, "Could't compute md5sum for %s.\n", file_name);
 		return NULL;
 	}
