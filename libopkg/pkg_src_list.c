@@ -42,11 +42,11 @@ void pkg_src_list_deinit(pkg_src_list_t * list)
 
 pkg_src_t *pkg_src_list_append(pkg_src_list_t * list,
 			       const char *name, const char *base_url,
-			       const char *extra_data, int gzip)
+			       int gzip)
 {
 	/* freed in pkg_src_list_deinit */
 	pkg_src_t *pkg_src = xcalloc(1, sizeof(pkg_src_t));
-	pkg_src_init(pkg_src, name, base_url, extra_data, gzip);
+	pkg_src_init(pkg_src, name, base_url, gzip);
 
 	void_list_append((void_list_t *) list, pkg_src);
 

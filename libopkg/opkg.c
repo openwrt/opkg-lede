@@ -529,13 +529,8 @@ opkg_update_package_lists(opkg_progress_callback_t progress_callback,
 
 		src = (pkg_src_t *) iter->data;
 
-		if (src->extra_data)	/* debian style? */
-			sprintf_alloc(&url, "%s/%s/%s", src->value,
-				      src->extra_data,
-				      src->gzip ? "Packages.gz" : "Packages");
-		else
-			sprintf_alloc(&url, "%s/%s", src->value,
-				      src->gzip ? "Packages.gz" : "Packages");
+		sprintf_alloc(&url, "%s/%s", src->value,
+			      src->gzip ? "Packages.gz" : "Packages");
 
 		sprintf_alloc(&list_file_name, "%s/%s", lists_dir, src->name);
 
@@ -550,12 +545,8 @@ opkg_update_package_lists(opkg_progress_callback_t progress_callback,
 			char *sig_file_name;
 			/* download detached signitures to verify the package lists */
 			/* get the url for the sig file */
-			if (src->extra_data)	/* debian style? */
-				sprintf_alloc(&url, "%s/%s/%s", src->value,
-					      src->extra_data, "Packages.sig");
-			else
-				sprintf_alloc(&url, "%s/%s", src->value,
-					      "Packages.sig");
+			sprintf_alloc(&url, "%s/%s", src->value,
+				      "Packages.sig");
 
 			/* create filename for signature */
 			sprintf_alloc(&sig_file_name, "%s/%s.sig", lists_dir,

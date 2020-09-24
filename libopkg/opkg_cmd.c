@@ -117,16 +117,8 @@ static int opkg_update_cmd(int argc, char **argv)
 
 		src = (pkg_src_t *) iter->data;
 
-		if (src->extra_data && strcmp(src->extra_data, "__dummy__ "))
-			continue;
-
-		if (src->extra_data)	/* debian style? */
-			sprintf_alloc(&url, "%s/%s/%s", src->value,
-				      src->extra_data,
-				      src->gzip ? "Packages.gz" : "Packages");
-		else
-			sprintf_alloc(&url, "%s/%s", src->value,
-				      src->gzip ? "Packages.gz" : "Packages");
+		sprintf_alloc(&url, "%s/%s", src->value,
+			      src->gzip ? "Packages.gz" : "Packages");
 
 		sprintf_alloc(&list_file_name, "%s/%s", lists_dir, src->name);
 		pkglist_dl_error = 0;
@@ -146,12 +138,8 @@ static int opkg_update_cmd(int argc, char **argv)
 		if (pkglist_dl_error == 0 && conf->check_signature) {
 			/* download detached signitures to verify the package lists */
 			/* get the url for the sig file */
-			if (src->extra_data)	/* debian style? */
-				sprintf_alloc(&url, "%s/%s/%s", src->value,
-					      src->extra_data, "Packages.sig");
-			else
-				sprintf_alloc(&url, "%s/%s", src->value,
-					      "Packages.sig");
+			sprintf_alloc(&url, "%s/%s", src->value,
+				      "Packages.sig");
 
 			/* create temporary file for it */
 			char *tmp_file_name;

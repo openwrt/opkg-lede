@@ -218,7 +218,7 @@ opkg_conf_parse_file(const char *filename,
 
 	while (1) {
 		char *line;
-		char *type, *name, *value, *extra;
+		char *type, *name, *value;
 
 		line_num++;
 
@@ -261,20 +261,6 @@ opkg_conf_parse_file(const char *filename,
 					 regmatch[9].rm_eo - regmatch[9].rm_so);
 		}
 
-		extra = NULL;
-		if (regmatch[11].rm_so > 0) {
-			if (regmatch[13].rm_so > 0
-			    && regmatch[13].rm_so != regmatch[13].rm_eo)
-				extra =
-				    xstrndup(line + regmatch[11].rm_so,
-					     regmatch[13].rm_eo -
-					     regmatch[11].rm_so);
-			else
-				extra = xstrndup(line + regmatch[11].rm_so,
-						 regmatch[11].rm_eo -
-						 regmatch[11].rm_so);
-		}
-
 		if (regmatch[13].rm_so != regmatch[13].rm_eo
 		    && strncmp(type, "dist", 4) != 0) {
 			opkg_msg(ERROR,
@@ -294,7 +280,7 @@ opkg_conf_parse_file(const char *filename,
 				if (!nv_pair_list_find
 				    ((nv_pair_list_t *) pkg_src_list, name)) {
 					pkg_src_list_append(pkg_src_list, name,
-							    value, extra, 0);
+							    value, 0);
 				} else {
 					opkg_msg(ERROR,
 						 "Duplicate src declaration (%s %s). "
@@ -304,7 +290,7 @@ opkg_conf_parse_file(const char *filename,
 				if (!nv_pair_list_find
 				    ((nv_pair_list_t *) pkg_src_list, name)) {
 					pkg_src_list_append(pkg_src_list, name,
-							    value, extra, 1);
+							    value, 1);
 				} else {
 					opkg_msg(ERROR,
 						 "Duplicate src declaration (%s %s). "
@@ -338,8 +324,6 @@ opkg_conf_parse_file(const char *filename,
 		free(type);
 		free(name);
 		free(value);
-		if (extra)
-			free(extra);
 
 NEXT_LINE:
 		free(line);

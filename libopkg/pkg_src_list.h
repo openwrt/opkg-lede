@@ -37,7 +37,6 @@ void pkg_src_list_init(pkg_src_list_t * list);
 void pkg_src_list_deinit(pkg_src_list_t * list);
 
 pkg_src_t *pkg_src_list_append(pkg_src_list_t * list, const char *name,
-			       const char *root_dir, const char *extra_data,
-			       int gzip);
+			       const char *root_dir, int gzip);
 
 #endif
