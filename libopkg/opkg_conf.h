@@ -45,7 +45,6 @@ extern opkg_conf_t *conf;
 
 struct opkg_conf {
 	pkg_src_list_t pkg_src_list;
-	pkg_src_list_t dist_src_list;
 	pkg_dest_list_t pkg_dest_list;
 	pkg_dest_list_t tmp_dest_list;
 	nv_pair_list_t arch_list;

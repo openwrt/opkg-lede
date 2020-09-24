@@ -69,31 +69,6 @@ void pkg_hash_deinit(void)
 	hash_table_deinit(&conf->pkg_hash);
 }
 
-int dist_hash_add_from_file(const char *lists_dir, pkg_src_t * dist)
-{
-	nv_pair_list_elt_t *l;
-	char *list_file, *subname;
-
-	list_for_each_entry(l, &conf->arch_list.head, node) {
-		nv_pair_t *nv = (nv_pair_t *) l->data;
-		sprintf_alloc(&subname, "%s-%s", dist->name, nv->name);
-		sprintf_alloc(&list_file, "%s/%s", lists_dir, subname);
-
-		if (file_exists(list_file)) {
-			if (pkg_hash_add_from_file(list_file, dist, NULL, 0, 0, NULL, NULL)) {
-				free(list_file);
-				return -1;
-			}
-			pkg_src_list_append(&conf->pkg_src_list, subname,
-					    dist->value, "__dummy__", 0);
-		}
-
-		free(list_file);
-	}
-
-	return 0;
-}
-
 int
 pkg_hash_add_from_file(const char *file_name,
 		       pkg_src_t * src, pkg_dest_t * dest, int is_status_file, int state_flags,
