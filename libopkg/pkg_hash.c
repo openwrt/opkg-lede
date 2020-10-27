@@ -20,6 +20,7 @@
 #include "hash_table.h"
 #include "pkg.h"
 #include "opkg_message.h"
+#include "pkg_depends.h"
 #include "pkg_vec.h"
 #include "pkg_hash.h"
 #include "parse_util.h"
@@ -376,10 +377,23 @@ pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 				if ((arch_priority > 0)
 				    &&
 				    (!pkg_vec_contains(matching_pkgs, maybe))) {
-					max_count++;
-					abstract_pkg_vec_insert(matching_apkgs,
-								maybe->parent);
-					pkg_vec_insert(matching_pkgs, maybe);
+					char **unresolved = NULL;
+					pkg_vec_t *depends = pkg_vec_alloc();
+					pkg_hash_fetch_unsatisfied_dependencies(maybe, depends,
+						&unresolved);
+
+					if (!unresolved) {
+						max_count++;
+						abstract_pkg_vec_insert(matching_apkgs,
+									maybe->parent);
+						pkg_vec_insert(matching_pkgs, maybe);
+					} else {
+						char **tmp = unresolved;
+						while (tmp)
+							free(*(tmp++));
+						free(unresolved);
+					}
+					pkg_vec_free(depends);
 				}
 			}
 
