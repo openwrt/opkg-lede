@@ -105,17 +105,17 @@ enum pkg_fields {
 
 struct abstract_pkg {
 	char *name;
-	int dependencies_checked;
 	pkg_vec_t *pkgs;
-	pkg_state_status_t state_status;
-	pkg_state_flag_t state_flag;
+	int dependencies_checked:1;
+	pkg_state_status_t state_status:4;
+	pkg_state_flag_t state_flag:11;
 
 	/* XXX: This should be abstract_pkg_vec_t for consistency. */
 	struct abstract_pkg **depended_upon_by;
 
 	abstract_pkg_vec_t *provided_by;
 	abstract_pkg_vec_t *replaced_by;
-};
+} __attribute__((__packed__)) ;
 
 #include "pkg_depends.h"
 
