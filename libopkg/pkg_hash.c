@@ -275,7 +275,7 @@ int pkg_hash_load_package_details(void)
 }
 
 static int
-pkg_hash_check_unresolved(const pkg_t *maybe)
+pkg_hash_check_unresolved(pkg_t *maybe)
 {
 	char **unresolved = NULL;
 	char **tmp;
