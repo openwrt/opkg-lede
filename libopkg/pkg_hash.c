@@ -283,6 +283,12 @@ pkg_hash_check_unresolved(pkg_t *maybe)
 	int i, res = 0;
 
 	depends = pkg_vec_alloc();
+	all = pkg_vec_alloc();
+	pkg_hash_fetch_available(all);
+	/* backup dependencies_checked marks, they get destroyed by pkg_hash_fetch_unsatisfied_dependencies */
+	for (i = 0; i < all->len; i++)
+		all->pkgs[i]->parent->prev_dependencies_checked = all->pkgs[i]->parent->dependencies_checked;
+
 	pkg_hash_fetch_unsatisfied_dependencies(maybe, depends, &unresolved);
 
 	if (unresolved) {
@@ -294,12 +300,10 @@ pkg_hash_check_unresolved(pkg_t *maybe)
 	}
 	pkg_vec_free(depends);
 
-	/* clear depenacy checked marks, left by pkg_hash_fetch_unsatisfied_dependencies */
-	all = pkg_vec_alloc();
-	pkg_hash_fetch_available(all);
-	for (i = 0; i < all->len; i++) {
-		all->pkgs[i]->parent->dependencies_checked = 0;
-	}
+	/* restore dependencies_checked marks */
+	for (i = 0; i < all->len; i++)
+		all->pkgs[i]->parent->dependencies_checked = all->pkgs[i]->parent->prev_dependencies_checked;
+
 	pkg_vec_free(all);
 
 	return res;

@@ -114,6 +114,7 @@ struct abstract_pkg {
 	abstract_pkg_vec_t *replaced_by;
 
 	int dependencies_checked:2;
+	int prev_dependencies_checked:2;
 	pkg_state_status_t state_status:4;
 	pkg_state_flag_t state_flag:11;
 };
