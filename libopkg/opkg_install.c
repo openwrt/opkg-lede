@@ -49,7 +49,7 @@ static int satisfy_dependencies_for(pkg_t * pkg)
 	int ndepends;
 
 	ndepends = pkg_hash_fetch_unsatisfied_dependencies(pkg, depends,
-							   &unresolved);
+							   &unresolved, 0);
 
 	if (unresolved) {
 		opkg_msg(ERROR,

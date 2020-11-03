@@ -279,17 +279,11 @@ pkg_hash_check_unresolved(pkg_t *maybe)
 {
 	char **unresolved = NULL;
 	char **tmp;
-	pkg_vec_t *depends, *all;
-	int i, res = 0;
+	pkg_vec_t *depends;
+	int res = 0;
 
 	depends = pkg_vec_alloc();
-	all = pkg_vec_alloc();
-	pkg_hash_fetch_available(all);
-	/* backup dependencies_checked marks, they get destroyed by pkg_hash_fetch_unsatisfied_dependencies */
-	for (i = 0; i < all->len; i++)
-		all->pkgs[i]->parent->prev_dependencies_checked = all->pkgs[i]->parent->dependencies_checked;
-
-	pkg_hash_fetch_unsatisfied_dependencies(maybe, depends, &unresolved);
+	pkg_hash_fetch_unsatisfied_dependencies(maybe, depends, &unresolved, 1);
 
 	if (unresolved) {
 		res = 1;
@@ -299,12 +293,6 @@ pkg_hash_check_unresolved(pkg_t *maybe)
 		free(unresolved);
 	}
 	pkg_vec_free(depends);
-
-	/* restore dependencies_checked marks */
-	for (i = 0; i < all->len; i++)
-		all->pkgs[i]->parent->dependencies_checked = all->pkgs[i]->parent->prev_dependencies_checked;
-
-	pkg_vec_free(all);
 
 	return res;
 }
@@ -411,13 +399,13 @@ pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 				   they show up twice sometimes. */
 				if ((arch_priority > 0)
 				    &&
-				    (!pkg_vec_contains(matching_pkgs, maybe))
-				    &&
-				    (!pkg_hash_check_unresolved(maybe))) {
-					max_count++;
-					abstract_pkg_vec_insert(matching_apkgs,
-								maybe->parent);
-					pkg_vec_insert(matching_pkgs, maybe);
+				    (!pkg_vec_contains(matching_pkgs, maybe))) {
+					if (!pkg_hash_check_unresolved(maybe)) {
+						max_count++;
+						abstract_pkg_vec_insert(matching_apkgs,
+									maybe->parent);
+						pkg_vec_insert(matching_pkgs, maybe);
+					}
 				}
 			}
 

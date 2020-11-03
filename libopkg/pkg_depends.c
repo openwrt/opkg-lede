@@ -55,7 +55,7 @@ static int pkg_constraint_satisfied(pkg_t * pkg, void *cdata)
 /* returns ndependencies or negative error value */
 int
 pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
-					char ***unresolved)
+					char ***unresolved, int pre_check)
 {
 	pkg_t *satisfier_entry_pkg;
 	int i, j, k;
@@ -63,6 +63,7 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 	char **the_lost;
 	abstract_pkg_t *ab_pkg;
 	compound_depend_t *compound_depend;
+	char *check;
 
 	/*
 	 * this is a setup to check for redundant/cyclic dependency checks,
@@ -73,11 +74,19 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 		*unresolved = NULL;
 		return 0;
 	}
-	if (ab_pkg->dependencies_checked) {	/* avoid duplicate or cyclic checks */
+
+	if(pre_check) {
+		check = &ab_pkg->pre_dependencies_checked;
+	} else {
+		check = &ab_pkg->dependencies_checked;
+	}
+
+	if (*check) {	/* avoid duplicate or cyclic checks */
 		*unresolved = NULL;
 		return 0;
 	} else {
-		ab_pkg->dependencies_checked = 1;	/* mark it for subsequent visits */
+		/* mark it for subsequent visits */
+		*check = 1;
 	}
 
 	compound_depend = pkg_get_ptr(pkg, PKG_DEPENDS);
@@ -117,14 +126,14 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 						pkg_t *pkg_scout = test_vec->pkgs[k];
 						/* not installed, and not already known about? */
 						if ((pkg_scout->state_want != SW_INSTALL)
-						    && !pkg_scout->parent->dependencies_checked
+						    && !(pre_check ? pkg_scout->parent->pre_dependencies_checked : pkg_scout->parent->dependencies_checked)
 						    && !is_pkg_in_pkg_vec(unsatisfied, pkg_scout)) {
 							char **newstuff = NULL;
 							int rc;
 							pkg_vec_t *tmp_vec = pkg_vec_alloc();
 							/* check for not-already-installed dependencies */
 							rc = pkg_hash_fetch_unsatisfied_dependencies(
-								pkg_scout, tmp_vec, &newstuff);
+								pkg_scout, tmp_vec, &newstuff, pre_check);
 							if (newstuff == NULL) {
 								int m;
 								int ok = 1;
@@ -251,7 +260,7 @@ pkg_hash_fetch_unsatisfied_dependencies(pkg_t * pkg, pkg_vec_t * unsatisfied,
 					    !is_pkg_in_pkg_vec(unsatisfied, satisfier_entry_pkg))
 					{
 						pkg_hash_fetch_unsatisfied_dependencies(
-							satisfier_entry_pkg, unsatisfied, &newstuff);
+							satisfier_entry_pkg, unsatisfied, &newstuff, pre_check);
 						pkg_vec_insert(unsatisfied, satisfier_entry_pkg);
 						the_lost = merge_unresolved(the_lost, newstuff);
 						if (newstuff)
