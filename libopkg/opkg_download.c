@@ -321,8 +321,8 @@ int opkg_prepare_url_for_install(const char *url, char **namep)
 
 	pkg = pkg_new();
 
-	if (str_starts_with(url, "http://")
-	    || str_starts_with(url, "ftp://")) {
+	if (str_starts_with(url, "http://") || str_starts_with(url, "https://")
+	    || str_starts_with(url, "ftp://") || str_starts_with(url, "ftps://")) {
 		char *tmp_file;
 		char *file_basec = xstrdup(url);
 		char *file_base = basename(file_basec);
