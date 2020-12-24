@@ -263,7 +263,7 @@ pkg_hash_check_unresolved(pkg_t *maybe)
 	if (unresolved) {
 		res = 1;
 		tmp = unresolved;
-		while (tmp)
+		while (*tmp)
 			free(*(tmp++));
 		free(unresolved);
 	}
