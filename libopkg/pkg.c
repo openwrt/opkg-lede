@@ -479,6 +479,8 @@ int pkg_merge(pkg_t * oldpkg, pkg_t * newpkg)
 		pkg_set_string(oldpkg, PKG_PRIORITY, pkg_get_string(newpkg, PKG_PRIORITY));
 	if (!pkg_get_string(oldpkg, PKG_SOURCE))
 		pkg_set_string(oldpkg, PKG_SOURCE, pkg_get_string(newpkg, PKG_SOURCE));
+	if (!pkg_get_string(oldpkg, PKG_ABIVERSION))
+		pkg_set_string(oldpkg, PKG_ABIVERSION, pkg_get_string(newpkg, PKG_ABIVERSION));
 
 	if (!pkg_get_ptr(oldpkg, PKG_CONFFILES)) {
 		pkg_set_ptr(oldpkg, PKG_CONFFILES, pkg_get_ptr(newpkg, PKG_CONFFILES));
@@ -650,7 +652,12 @@ void pkg_formatted_field(FILE * fp, pkg_t * pkg, const char *field)
 	switch (field[0]) {
 	case 'a':
 	case 'A':
-		if (strcasecmp(field, "Alternatives") == 0) {
+		if (strcasecmp(field, "ABIVersion") == 0) {
+			p = pkg_get_string(pkg, PKG_ABIVERSION);
+			if (p) {
+				fprintf(fp, "ABIVersion: %s\n", p);
+			}
+		} else if (strcasecmp(field, "Alternatives") == 0) {
 			struct pkg_alternatives *pkg_alts = pkg_get_ptr(pkg, PKG_ALTERNATIVES);
 
 			if (pkg_alts && pkg_alts->nalts > 0) {
@@ -954,6 +961,7 @@ void pkg_print_status(pkg_t * pkg, FILE * file)
 	}
 
 	pkg_formatted_field(file, pkg, "Package");
+	pkg_formatted_field(file, pkg, "ABIVersion");
 	pkg_formatted_field(file, pkg, "Version");
 	pkg_formatted_field(file, pkg, "Depends");
 	pkg_formatted_field(file, pkg, "Recommends");

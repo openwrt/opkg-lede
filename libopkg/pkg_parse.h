@@ -54,6 +54,7 @@ int pkg_parse_line(void *ptr, char *line, uint mask);
 #define PFM_SUGGESTS		(1 << 25)
 #define PFM_TAGS		(1 << 26)
 #define PFM_VERSION		(1 << 27)
+#define PFM_ABIVERSION		(1 << 28)
 
 #define PFM_ALL	(~(uint)0)
 

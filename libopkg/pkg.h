@@ -101,6 +101,7 @@ enum pkg_fields {
 	PKG_CONFLICTS,
 	PKG_CONFFILES,
 	PKG_ALTERNATIVES,
+	PKG_ABIVERSION,
 };
 
 struct abstract_pkg {

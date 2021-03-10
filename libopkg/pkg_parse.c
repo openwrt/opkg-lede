@@ -208,7 +208,9 @@ int pkg_parse_line(void *ptr, char *line, uint mask)
 
 	switch (*line) {
 	case 'A':
-		if ((mask & PFM_ALTERNATIVES) && is_field("Alternatives", line))
+		if ((mask & PFM_ABIVERSION) && is_field("ABIVersion", line))
+			pkg_set_string(pkg, PKG_ABIVERSION, line + strlen("ABIVersion") + 1);
+		else if ((mask & PFM_ALTERNATIVES) && is_field("Alternatives", line))
 			parse_alternatives(pkg, line + strlen("Alternatives") + 1);
 		else if ((mask & PFM_ARCHITECTURE) && is_field("Architecture", line))
 			parse_architecture(pkg, line + strlen("Architecture") + 1);
