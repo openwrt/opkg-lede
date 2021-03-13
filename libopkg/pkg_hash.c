@@ -284,6 +284,7 @@ pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 	int nmatching = 0;
 	int wrong_arch_found = 0;
 	int arch_priority;
+	int good_pkg_score = 0;
 	pkg_vec_t *matching_pkgs;
 	abstract_pkg_vec_t *matching_apkgs;
 	abstract_pkg_vec_t *provided_apkg_vec;
@@ -409,9 +410,18 @@ pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 	for (i = 0; i < matching_pkgs->len; i++) {
 		pkg_t *matching = matching_pkgs->pkgs[i];
 		if (constraint_fcn(matching, cdata)) {
-			opkg_msg(DEBUG, "Candidate: %s %s.\n",
-				 matching->name, pkg_get_string(matching, PKG_VERSION));
+			int score = 1;
+			if (strcmp(matching->name, apkg->name) == 0)
+				score++;
+
+			opkg_msg(DEBUG, "Candidate: %s %s (score %d).\n",
+				 matching->name, pkg_get_string(matching, PKG_VERSION),
+				 score);
+			if (score < good_pkg_score)
+				continue;
+
 			good_pkg_by_name = matching;
+			good_pkg_score = score;
 			/* It has been provided by hand, so it is what user want */
 			if (matching->provided_by_hand == 1)
 				break;
