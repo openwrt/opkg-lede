@@ -89,6 +89,7 @@ struct opkg_conf {
 	char *verify_program;
 	int noaction;
 	int size;
+	int strip_abi;
 	int download_only;
 	char *cache;
 

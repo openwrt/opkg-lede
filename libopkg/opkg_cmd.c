@@ -45,7 +45,23 @@ static void print_pkg(pkg_t * pkg)
 {
 	char *version = pkg_version_str_alloc(pkg);
 	char *description = pkg_get_string(pkg, PKG_DESCRIPTION);
-	printf("%s - %s", pkg->name, version);
+	const char *abiver;
+	char *tmp, *tmpname = NULL;
+
+	if (conf->strip_abi &&
+	    (abiver = pkg_get_string(pkg, PKG_ABIVERSION)) &&
+	    (strlen(pkg->name) > strlen(abiver))) {
+		tmpname = strdup(pkg->name);
+		tmp = &tmpname[strlen(tmpname) - strlen(abiver)];
+		if (!strncmp(abiver, tmp, strlen(abiver)))
+			*tmp = '\0';
+	};
+
+	printf("%s - %s", tmpname?tmpname:pkg->name, version);
+
+	if (tmpname)
+		free(tmpname);
+
 	if (conf->size)
 		printf(" - %lu", (unsigned long) pkg_get_int(pkg, PKG_SIZE));
 	if (description)
@@ -578,7 +594,8 @@ static void opkg_list_find_cmd_cb(pkg_t *pkg, void *priv)
 	char *description = pkg_get_string(pkg, PKG_DESCRIPTION);
 	char *version = pkg_version_str_alloc(pkg);
 	struct opkg_list_find_cmd_item *item;
-	char *nameptr, *versionptr, *descriptionptr;
+	char *nameptr, *versionptr, *descriptionptr, *tmp;
+	const char *abiver;
 	int i, found = 0;
 
 	/* if we have package name or pattern and pkg does not match, then skip it */
@@ -603,6 +620,15 @@ static void opkg_list_find_cmd_cb(pkg_t *pkg, void *priv)
 		                &descriptionptr, description ? strlen(description) + 1 : 0);
 
 		item->name = strcpy(nameptr, pkg->name);
+
+		if (conf->strip_abi &&
+		    (abiver = pkg_get_string(pkg, PKG_ABIVERSION)) &&
+		    (strlen(item->name) > strlen(abiver))) {
+			tmp = &item->name[strlen(item->name) - strlen(abiver)];
+			if (!strncmp(abiver, tmp, strlen(abiver)))
+				*tmp = '\0';
+		};
+
 		item->size = pkg_get_int(pkg, PKG_SIZE);
 		item->version = strcpy(versionptr, version);
 		item->description = description ? strcpy(descriptionptr, description) : NULL;

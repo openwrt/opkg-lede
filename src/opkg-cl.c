@@ -55,6 +55,7 @@ enum {
 	ARGS_OPT_NO_CHECK_CERTIFICATE,
 	ARGS_OPT_VERIFY_PROGRAM,
 	ARGS_OPT_SIZE,
+	ARGS_OPT_STRIP_ABI,
 };
 
 static struct option long_options[] = {
@@ -104,6 +105,8 @@ static struct option long_options[] = {
 	{"add-arch", 1, 0, ARGS_OPT_ADD_ARCH},
 	{"add-dest", 1, 0, ARGS_OPT_ADD_DEST},
 	{"size", 0, 0, ARGS_OPT_SIZE},
+	{"strip-abi", 0, 0, ARGS_OPT_STRIP_ABI},
+	{"strip_abi", 0, 0, ARGS_OPT_STRIP_ABI},
 	{"test", 0, 0, ARGS_OPT_NOACTION},
 	{"tmp-dir", 1, 0, 't'},
 	{"tmp_dir", 1, 0, 't'},
@@ -238,6 +241,9 @@ static int args_parse(int argc, char *argv[])
 		case ARGS_OPT_VERIFY_PROGRAM:
 			conf->verify_program = xstrdup(optarg);
 			break;
+		case ARGS_OPT_STRIP_ABI:
+			conf->strip_abi = 1;
+			break;
 		case ':':
 			parse_err = -1;
 			break;
@@ -357,6 +363,8 @@ static void usage()
 	    ("\t--nocase		Perform case insensitive pattern matching\n");
 	printf
 	    ("\t--size			Print package size when listing available packages\n");
+	printf
+	    ("\t--strip-abi		Print package name without appended ABI version\n");
 	printf("\t--force-removal-of-dependent-packages\n");
 	printf("\t			Remove package and all dependencies\n");
 	printf("\t--autoremove		Remove packages that were installed\n");
