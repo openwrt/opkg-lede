@@ -263,8 +263,10 @@ pkg_hash_check_unresolved(pkg_t *maybe)
 	if (unresolved) {
 		res = 1;
 		tmp = unresolved;
-		while (*tmp)
+		while (*tmp) {
+			opkg_msg(ERROR, "cannot find dependency %s for %s\n", *tmp, maybe->name);
 			free(*(tmp++));
+		}
 		free(unresolved);
 	}
 	pkg_vec_free(depends);
