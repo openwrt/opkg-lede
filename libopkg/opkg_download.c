@@ -133,6 +133,12 @@ opkg_download(const char *src, const char *dest_file_name,
 			 conf->http_proxy);
 		setenv("http_proxy", conf->http_proxy, 1);
 	}
+	if (conf->https_proxy) {
+		opkg_msg(DEBUG,
+			 "Setting environment variable: https_proxy = %s.\n",
+			 conf->https_proxy);
+		setenv("https_proxy", conf->https_proxy, 1);
+	}
 	if (conf->ftp_proxy) {
 		opkg_msg(DEBUG,
 			 "Setting environment variable: ftp_proxy = %s.\n",
@@ -160,7 +166,7 @@ opkg_download(const char *src, const char *dest_file_name,
 			argv[i++] = "--timeout";
 			argv[i++] = conf->http_timeout;
 		}
-		if (conf->http_proxy || conf->ftp_proxy) {
+		if (conf->http_proxy || conf->https_proxy || conf->ftp_proxy) {
 			argv[i++] = "-Y";
 			argv[i++] = "on";
 		}
