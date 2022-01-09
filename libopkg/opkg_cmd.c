@@ -42,7 +42,7 @@
 #include "xsystem.h"
 
 int opkg_cli_argc = 0;
-char **opkg_cli_argv = NULL;
+const char **opkg_cli_argv = NULL;
 
 static void print_pkg(pkg_t * pkg)
 {
