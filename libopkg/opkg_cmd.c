@@ -41,6 +41,9 @@
 #include "opkg_configure.h"
 #include "xsystem.h"
 
+int opkg_cli_argc = 0;
+char **opkg_cli_argv = NULL;
+
 static void print_pkg(pkg_t * pkg)
 {
 	char *version = pkg_version_str_alloc(pkg);
@@ -1427,5 +1430,7 @@ opkg_cmd_t *opkg_cmd_find(const char *name)
 
 int opkg_cmd_exec(opkg_cmd_t * cmd, int argc, const char **argv)
 {
+	opkg_cli_argc = argc;
+	opkg_cli_argv = argv;
 	return (cmd->fun) (argc, argv);
 }

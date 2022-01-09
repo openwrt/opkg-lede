@@ -26,6 +26,7 @@
 #include "parse_util.h"
 #include "pkg_parse.h"
 #include "opkg_utils.h"
+#include "opkg_cmd.h"
 #include "sprintf_alloc.h"
 #include "file_util.h"
 #include "libbb/libbb.h"
@@ -415,6 +416,13 @@ pkg_t *pkg_hash_fetch_best_installation_candidate(abstract_pkg_t * apkg,
 			int score = 1;
 			if (strcmp(matching->name, apkg->name) == 0)
 				score++;
+
+			for (j = 0; j < opkg_cli_argc; ++j) {
+				if (!strcmp(matching->name, opkg_cli_argv[j])) {
+					score++;
+					break;
+				}
+			}
 
 			opkg_msg(DEBUG, "Candidate: %s %s (score %d).\n",
 				 matching->name, pkg_get_string(matching, PKG_VERSION),

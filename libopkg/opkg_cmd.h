@@ -32,4 +32,6 @@ opkg_cmd_t *opkg_cmd_find(const char *name);
 int opkg_cmd_exec(opkg_cmd_t * cmd, int argc, const char **argv);
 
 extern int opkg_state_changed;
+extern int opkg_cli_argc;
+extern char **opkg_cli_argv;
 #endif
