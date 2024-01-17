@@ -74,7 +74,8 @@ int opkg_upgrade_pkg(pkg_t * old)
 
 	free(old_version);
 	free(new_version);
-	new->state_flag |= SF_USER;
+	new->auto_installed = old->auto_installed;
+	new->state_flag |= old->state_flag & SF_USER;
 	return opkg_install_pkg(new, 1);
 }
 
