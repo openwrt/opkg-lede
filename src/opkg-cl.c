@@ -275,7 +275,7 @@ static void usage()
 	printf("\tupgrade <pkgs>		Upgrade packages\n");
 	printf("\tinstall <pkgs>		Install package(s)\n");
 	printf("\tconfigure <pkgs>	Configure unpacked package(s)\n");
-	printf("\tremove <pkgs|regexp>	Remove package(s)\n");
+	printf("\tremove <pkgs|wildcard>	Remove package(s)\n");
 	printf("\tflag <flag> <pkgs>	Flag package(s)\n");
 	printf
 	    ("\t <flag>=hold|noprune|user|ok|installed|unpacked (one per invocation)\n");
@@ -288,11 +288,11 @@ static void usage()
 	printf
 	    ("\tlist-changed-conffiles	List user modified configuration files\n");
 	printf("\tfiles <pkg>		List files belonging to <pkg>\n");
-	printf("\tsearch <file|regexp>	List package providing <file>\n");
+	printf("\tsearch <file|wildcard>	List package providing <file>\n");
 	printf
-	    ("\tfind <regexp>		List packages whose name or description matches <regexp>\n");
-	printf("\tinfo [pkg|regexp]	Display all info for <pkg>\n");
-	printf("\tstatus [pkg|regexp]	Display all status for <pkg>\n");
+	    ("\tfind <wildcard>		List packages whose name or description matches <wildcard>\n");
+	printf("\tinfo [pkg|wildcard]	Display all info for <pkg>\n");
+	printf("\tstatus [pkg|wildcard]	Display all status for <pkg>\n");
 	printf
 	    ("\tdownload <pkg>		Download <pkg> to current directory\n");
 	printf("\tcompare-versions <v1> <op> <v2>\n");
@@ -378,7 +378,7 @@ static void usage()
 	printf("\n");
 
 	printf
-	    (" regexp could be something like 'pkgname*' '*file*' or similar\n");
+	    (" wildcard could be something like 'pkgname*' '*file*' or similar\n");
 	printf
 	    (" e.g. opkg info 'libstd*' or opkg search '*libop*' or opkg remove 'libncur*'\n");
 
